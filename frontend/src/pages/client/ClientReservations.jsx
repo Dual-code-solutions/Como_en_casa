@@ -20,6 +20,20 @@ const ClientReservations = () => {
     notas_adicionales: ''
   });
 
+  const generateHours = () => {
+    const hours = [];
+    for (let h = 13; h <= 22; h++) {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const displayH = h > 12 ? h - 12 : h;
+      hours.push({ value: `${h.toString().padStart(2, '0')}:00`, label: `${displayH}:00 ${ampm}` });
+      if (h !== 22) { // Allow up to 10:00 PM max for example
+        hours.push({ value: `${h.toString().padStart(2, '0')}:30`, label: `${displayH}:30 ${ampm}` });
+      }
+    }
+    return hours;
+  };
+  const selectHours = generateHours();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -112,9 +126,17 @@ const ClientReservations = () => {
                 <label className="form-label">
                   <Clock size={16} /> ¿A qué hora?
                 </label>
-                <input required type="time" 
-                  className="form-input"
-                  onChange={(e) => setFormData({...formData, hora_reserva: e.target.value})} />
+                <select 
+                  required 
+                  className="form-input select-styled"
+                  value={formData.hora_reserva}
+                  onChange={(e) => setFormData({...formData, hora_reserva: e.target.value})}
+                >
+                  <option value="" disabled>Selecciona una hora</option>
+                  {selectHours.map(h => (
+                    <option key={h.value} value={h.value}>{h.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
