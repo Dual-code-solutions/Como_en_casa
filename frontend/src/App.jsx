@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Menu from './pages/client/Menu';
 import CartSummary from './pages/client/CartSummary';
 import Checkout from './pages/client/Checkout';
+import ClientReservations from './pages/client/ClientReservations';
 import LoginPin from './pages/admin/LoginPin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminReservas from './pages/admin/AdminReservas';
 
 function App() {
   return (
@@ -14,9 +16,11 @@ function App() {
         <Route path="/" element={<Menu />} />
         <Route path="/cart" element={<CartSummary />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/reservas" element={<ClientReservations />} />
 
         {/* Lado del Admin */}
         <Route path="/admin/login" element={<LoginPin />} />
+        <Route path="/admin/reservas" element={<AdminReservas />} />
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </Router>

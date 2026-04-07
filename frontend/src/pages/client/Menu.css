@@ -1,152 +1,349 @@
 /* Menu.css - Rediseño sin sidebar */
 
+/* Menu.css - Rustic Design */
 .menu-page {
   min-height: 100vh;
-  background-color: #F9F6EE;
+  background-color: var(--crema-fondo);
+  background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
   display: flex;
   flex-direction: column;
 }
 
-/* CATEGORÍAS HORIZONTALES */
-.category-pills-wrapper {
-  background-color: #fff;
-  padding: 1rem 2rem;
+/* HEADER COMPACTO Y CON IMPACTO */
+.header-compact {
+  height: 180px; 
+  background-color: #3b261d;
+  background-image: 
+    linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%),
+    url('https://www.transparenttextures.com/patterns/dark-wood.png'); 
+  background-repeat: repeat;
   display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  border-bottom: 1px solid #f0ece4;
-  scrollbar-width: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5);
+  border-bottom: 5px solid #8b4513;
 }
 
-.category-pills-wrapper::-webkit-scrollbar {
+.header-compact h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.5rem;
+  color: #FDFBF0;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  line-height: 1.1;
+}
+
+.header-compact p {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  color: #ffebd6;
+  margin: 0.5rem 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  opacity: 0.8;
+}
+
+@media (max-width: 600px) {
+  .header-compact h1 { font-size: 2.5rem; }
+}
+
+/* LA REPISA DE CATEGORÍAS */
+.category-ribbon {
+  background-color: #3b261d;
+  background-image: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+  border-top: 4px solid #D2691E; /* Línea de cobre gruesa */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  position: sticky;
+  top: 70px; /* Fits new navbar height */
+  z-index: 40;
+}
+
+.category-ribbon-wrapper {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.category-ribbon-content {
+  display: flex;
+  flex: 1;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem 0;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.category-ribbon-content::-webkit-scrollbar {
   display: none;
 }
 
-.category-pill {
+.ribbon-arrow {
+  background: rgba(45, 27, 16, 0.9);
+  color: #fff;
+  border: 1px solid #7a3e22;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  margin: 0 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  transition: all 0.2s;
   flex-shrink: 0;
-  padding: 0.5rem 1.5rem;
-  border-radius: 9999px;
-  border: 2px solid #e6ddd4;
-  background-color: white;
-  color: #4A2C2A;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  font-size: 0.875rem;
+}
+
+.ribbon-arrow:hover {
+  background: var(--oxido);
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .ribbon-arrow { display: none; }
+}
+
+.category-tab {
+  padding: 0.6rem 1.25rem;
+  margin: 0.5rem 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  border: none;
+  background: transparent;
+  color: #d6c3ae;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  border-radius: 0.5rem;
 }
 
-.category-pill:hover {
-  border-color: #8B4513;
-  color: #8B4513;
+.category-tab:hover {
+  color: #ffffff;
 }
 
-.category-pill.active {
-  background-color: #8B4513;
-  border-color: #8B4513;
-  color: white;
+.category-tab.active {
+  background-color: var(--crema-fondo);
+  color: var(--cafe-oscuro);
+  font-weight: 700;
+  box-shadow: 2px 4px 10px rgba(0,0,0,0.25);
 }
 
-/* SECCIÓN DE PRODUCTOS */
+/* SECCIÓN PRINCIPAL */
+.menu-section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 2rem 1.5rem;
+  max-width: 1100px;
+}
+
+@media (min-width: 1150px) {
+  .menu-section-header { margin: 2.5rem auto 2rem; }
+}
+
 .menu-section-title {
   font-family: 'Playfair Display', serif;
-  font-size: 1.75rem;
-  color: #4A2C2A;
-  margin: 2rem 2rem 1.25rem;
+  font-size: 2rem;
+  color: var(--cafe-oscuro);
+  margin: 0;
+}
+
+.menu-section-divider {
+  height: 1px;
+  flex: 1;
+  background-color: #e5e0d8;
 }
 
 .menu-main {
   flex: 1;
-  padding: 0 2rem 2rem;
+  padding: 0 2rem 4rem;
+  max-width: 1150px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 850px) {
   .product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
-.product-card {
-  background-color: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 2px 12px rgba(74, 44, 42, 0.08);
+/* TARJETA PERGAMINO (HORIZONTAL MD) */
+.card-pergamino {
+  background-color: #fdfaf3; 
+  background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+  border: 1px solid #e2d1b3;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border-radius: 2.5rem;
   overflow: hidden;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(74, 44, 42, 0.15);
+.card-pergamino:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.1);
+  border-color: #D2691E;
+}
+
+@media (min-width: 1024px) {
+  .card-pergamino { flex-direction: row; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .card-pergamino { flex-direction: row; }
+}
+
+.product-image-container {
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+  min-height: 16rem;
 }
 
 .product-image {
-  height: 10rem;
   width: 100%;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.7s ease;
 }
 
-.product-info {
-  padding: 1.25rem;
+.card-pergamino:hover .product-image {
+  transform: scale(1.05);
+}
+
+.product-info-box {
+  padding: 2rem; /* The p-8 requested */
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  flex: 1.5;
 }
 
-.product-header-row {
+.product-info-top {
+  margin-bottom: 2rem;
+}
+
+.product-info-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.4rem;
-  gap: 0.75rem;
+  align-items: baseline; /* Align perfectly horizontally */
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
 }
 
 .product-name {
   font-family: 'Playfair Display', serif;
-  font-size: 1.1rem;
-  line-height: 1.3;
-  color: #4A2C2A;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #2D1B10;
   margin: 0;
+  font-weight: 700;
 }
 
 .product-price {
-  font-weight: 700;
-  color: #cb4335;
-  font-family: 'Poppins', sans-serif;
-  font-size: 1rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #8B4513;
+  font-weight: 900;
   white-space: nowrap;
 }
 
 .product-desc {
-  color: #888;
-  font-size: 0.825rem;
-  font-family: 'Poppins', sans-serif;
-  margin: 0 0 1rem 0;
-  min-height: 2.5rem;
-  line-height: 1.5;
-}
-
-.add-button-full {
-  width: 100%;
-  background-color: #cb4335;
-  color: white;
-  padding: 0.7rem 1rem;
-  border: none;
-  border-radius: 9999px;
-  font-weight: 700;
-  cursor: pointer;
   font-family: 'Poppins', sans-serif;
   font-size: 0.875rem;
-  transition: all 0.2s;
-  box-shadow: 0 3px 8px rgba(203, 67, 53, 0.35);
+  color: #78716c; 
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 300;
+  font-style: italic;
 }
 
-.add-button-full:hover {
-  filter: brightness(1.1);
-  transform: scale(1.02);
+.product-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(74, 44, 42, 0.8);
+  backdrop-filter: blur(4px);
+  color: #F5F5DC;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  z-index: 5;
+}
+
+/* BOTÓN FORJA */
+.btn-forja {
+  background-color: #8b4513;
+  border: 2px solid #2d1b10;
+  color: #fdfaf3;
+  padding: 1rem;
+  border-radius: 1rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  width: 100%;
+  box-shadow: 0 4px 0px #2d1b10;
+  transition: all 0.1s ease;
+}
+
+.btn-forja:hover {
+  background-color: #7a3e22;
+  transform: translateY(1px);
+  box-shadow: 0 3px 0px #2d1b10;
+}
+
+.btn-forja:active {
+  transform: translateY(4px);
+  box-shadow: 0 0px 0px #2d1b10;
+}
+
+.spin-slow-icon {
+  opacity: 0.8;
+  transition: transform 0.5s linear;
+}
+
+.btn-forja:hover .spin-slow-icon {
+  transform: rotate(90deg);
+}
+
+/* DOODLE FIJO PULIDO */
+.doodle-deco {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  opacity: 0.1;
+  pointer-events: none;
+  width: 8rem;
+  height: 8rem;
+  transform: rotate(12deg);
+  z-index: 0;
 }

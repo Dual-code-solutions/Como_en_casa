@@ -90,7 +90,7 @@ const CartSummary = () => {
           <hr className="summary-divider" />
           <div className="summary-total-row">
             <span>Total estimado</span>
-            <span className="summary-total-value">${total.toFixed(2)}</span>
+            <span className="cart-total-value">${total.toFixed(2)}</span>
           </div>
         </div>
       </div>

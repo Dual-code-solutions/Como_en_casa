@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { Bell, Play, CheckCircle, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Play, CheckCircle, Package, LayoutDashboard, Settings, User, Calendar as CalendarIcon } from 'lucide-react';
 import { supabase } from '../../api/supabaseClient';
 import './AdminDashboard.css';
 
@@ -9,6 +10,7 @@ const socket = io('http://localhost:3000');
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
+  const navigate = useNavigate();
   const localId = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197"; // Timucuy
 
   useEffect(() => {
@@ -76,42 +78,100 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1 className="dashboard-title">Panel de Recepción - Timucuy</h1>
-        <div className="flex items-center gap-4">
-          <span className="status-badge">En Línea</span>
+    <div className="admin-layout">
+      {/* Sidebar Overlay for Mobile could be added here later */}
+      <aside className="admin-sidebar">
+        <div className="sidebar-brand">
+          <img src="/src/assets/logo.png" alt="Como en Casa" className="sidebar-logo" />
+          <h2 className="sidebar-brand-name">Como en Casa</h2>
         </div>
-      </header>
-
-      <main className="kanban-board">
-        {states.map((state) => (
-          <div key={state.id} className={`kanban-col ${state.className}`}>
-            <div className="kanban-col-header">
-              <state.icon size={20} color="#374151" />
-              <h2 className="kanban-col-title">{state.label}</h2>
-            </div>
-
-            <div className="kanban-col-content">
-              {orders.filter(o => o.estado === state.id).map(order => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <span className="order-id">#{String(order.id).slice(-4)}</span>
-                    <span className="order-time">Hace 2 min</span>
-                  </div>
-                  <p className="order-customer">{order.nombre_cliente}</p>
-                  <p className="order-details">{order.modalidad} - Mesa {order.numero_mesa}</p>
-                  
-                  <div className="order-actions">
-                    <button className="btn-detalle">DETALLE</button>
-                    <button className="btn-siguiente" onClick={() => advanceOrder(order)}>SIGUIENTE</button>
-                  </div>
-                </div>
-              ))}
+        <nav className="sidebar-nav">
+          <button className="sidebar-nav-item active">
+            <LayoutDashboard size={20} />
+            Panel Recepción
+          </button>
+          <button className="sidebar-nav-item" onClick={() => navigate('/admin/reservas')}>
+            <CalendarIcon size={20} />
+            Reservaciones
+          </button>
+          <button className="sidebar-nav-item">
+            <Settings size={20} />
+            Ajustes (Pronto)
+          </button>
+        </nav>
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <User size={32} className="user-avatar" />
+            <div className="user-info">
+              <span className="user-name">Admin Timucuy</span>
+              <span className="status-badge-sidebar">En Línea</span>
             </div>
           </div>
-        ))}
-      </main>
+        </div>
+      </aside>
+
+      <div className="dashboard-main">
+        <header className="dashboard-header">
+          <div className="header-info">
+            <h1 className="dashboard-title">Recepción de Pedidos</h1>
+            <p className="dashboard-subtitle">Gestiona en tiempo real los pedidos de la sucursal Timucuy.</p>
+          </div>
+          <div className="header-actions">
+            <div className="status-indicator">
+              <div className="status-dot pulse"></div>
+              <span>Sistema Activo</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="kanban-board">
+          {states.map((state) => (
+            <div key={state.id} className={`kanban-col ${state.className}`}>
+              <div className="kanban-col-header">
+                <div className="kanban-header-left">
+                  <state.icon size={22} className="col-icon" />
+                  <h2 className="kanban-col-title">{state.label}</h2>
+                </div>
+                <div className="kanban-col-count">
+                  {orders.filter(o => o.estado === state.id).length}
+                </div>
+              </div>
+
+              <div className="kanban-col-content">
+                {orders.filter(o => o.estado === state.id).map((order, idx) => (
+                  <div key={order.id} className="order-card" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div className="order-header">
+                      <div className="order-id-badge">
+                        #{String(order.id).slice(-4)}
+                      </div>
+                      <span className="order-time">Hace 2 min</span>
+                    </div>
+                    <div className="order-body">
+                      <p className="order-customer">{order.nombre_cliente}</p>
+                      <div className="order-tags">
+                        <span className="tag-modalidad">{order.modalidad}</span>
+                        <span className="tag-mesa">Mesa {order.numero_mesa}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="order-actions">
+                      <button className="btn-detalle">Ver Detalle</button>
+                      <button className="btn-siguiente" onClick={() => advanceOrder(order)}>
+                        Siguiente
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {orders.filter(o => o.estado === state.id).length === 0 && (
+                  <div className="empty-state">
+                    <p>No hay pedidos aquí</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </main>
+      </div>
     </div>
   );
 };

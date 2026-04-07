@@ -1,4 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
+
 :root {
+  --cafe-oscuro: #2D1B10;
+  --crema-fondo: #FDFBF0;
+  --oxido: #A0522D;
+  --pergamino: #F5E6BE;
+
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;

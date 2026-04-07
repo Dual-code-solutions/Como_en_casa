@@ -1,0 +1,263 @@
+/* ClientReservations.css */
+
+.client-res-page {
+  min-height: 100vh;
+  background-color: #F9F6EE; /* match global warm background */
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-res-form-wrapper {
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+.client-res-card {
+  max-width: 650px;
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px rgba(74, 44, 42, 0.08);
+  overflow: hidden;
+  height: fit-content;
+}
+
+.client-res-header {
+  background: linear-gradient(135deg, #4A2C2A 0%, #6B3A2A 100%);
+  padding: 2rem;
+  text-align: center;
+}
+
+.client-res-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.25rem;
+  color: #F5F5DC;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.client-res-subtitle {
+  color: #fbceb1;
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+}
+
+.client-res-form {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8B4513;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 1rem;
+  background-color: #faf8f5;
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  outline: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  color: #4A2C2A;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #D2691E;
+  background-color: #ffffff;
+}
+
+.textarea-res {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.counter-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #faf8f5;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  width: max-content;
+}
+
+.counter-btn {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  color: #D2691E;
+  font-weight: 700;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.counter-btn:active {
+  transform: scale(0.95);
+}
+
+.counter-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4A2C2A;
+  width: 2rem;
+  text-align: center;
+}
+
+.res-warning-box {
+  background-color: #fffaf0;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #ffedd5;
+}
+
+.res-warning-box p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #8B4513;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.btn-submit-res {
+  width: 100%;
+  background: linear-gradient(135deg, #D2691E 0%, #A0522D 100%);
+  color: #ffffff;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-family: 'Poppins', sans-serif;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(210, 105, 30, 0.3);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btn-submit-res:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(210, 105, 30, 0.4);
+}
+
+.btn-submit-res:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* CONFIRMATION STATE */
+.client-res-confirm-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem;
+}
+
+.client-res-confirm-card {
+  background-color: white;
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  text-align: center;
+  max-width: 450px;
+  width: 100%;
+  animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.confirm-icon-wrapper {
+  background-color: #dcfce7;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.confirm-icon {
+  color: #16a34a;
+}
+
+.confirm-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  color: #4A2C2A;
+  margin: 0 0 1rem 0;
+}
+
+.confirm-text {
+  color: #64748b;
+  margin: 0 0 2rem 0;
+  line-height: 1.6;
+}
+
+.confirm-text strong {
+  color: #4A2C2A;
+}
+
+.btn-back-menu {
+  width: 100%;
+  background-color: #D2691E;
+  color: white;
+  padding: 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(210, 105, 30, 0.2);
+  transition: all 0.2s;
+}
+
+.btn-back-menu:hover {
+  background-color: #c05c19;
+  transform: translateY(-2px);
+}

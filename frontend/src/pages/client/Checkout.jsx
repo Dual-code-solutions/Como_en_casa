@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../store/useCart';
 import { User, Phone, Utensils, ShoppingBag, Truck } from 'lucide-react';
+import Navbar from '../../components/client/Navbar';
 import './Checkout.css';
 
 const LOCAL_ID = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197";
@@ -50,22 +51,23 @@ const Checkout = () => {
   return (
     <div className="checkout-page">
 
-      {/* BANDA SUPERIOR OSCURA - Navegación y título */}
-      <div className="checkout-hero">
-        <button className="checkout-hero-back" onClick={() => navigate('/cart')}>
-          ← Mi carrito
-        </button>
-        <h1 className="checkout-hero-title">Confirmar Pedido</h1>
-        <div className="checkout-hero-steps">
-          <span>Carrito</span>
-          <span>›</span>
-          <span className="step-active">Datos</span>
-          <span>›</span>
-          <span>Listo</span>
-        </div>
-      </div>
+      <Navbar />
 
       <div className="checkout-container">
+        {/* Cabecera del Checkout (Mismo estilo que Cart) */}
+        <div className="checkout-header-row">
+          <button className="checkout-back-btn" onClick={() => navigate('/cart')}>
+            ← Mi carrito
+          </button>
+          <h1 className="checkout-main-title">Confirmar Pedido</h1>
+          <div className="checkout-steps">
+            <span>Carrito</span>
+            <span>›</span>
+            <span className="step-active">Datos</span>
+            <span>›</span>
+            <span>Listo</span>
+          </div>
+        </div>
         {/* COLUMNA IZQUIERDA: FORMULARIO */}
         <div className="checkout-form-panel">
           <h2 className="checkout-title">Detalles de tu pedido</h2>
