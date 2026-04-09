@@ -1,0 +1,289 @@
+# src/api/docs/productos.yaml
+paths:
+  /api/locales/{localId}/productos:
+    get:
+      tags: [Productos]
+      summary: Listar productos del menú
+      description: "🟢 Público — La tablet muestra estos productos. Soporta filtros."
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: categoria
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filtrar por categoría
+        - name: disponible
+          in: query
+          schema: { type: string, enum: ["true", "false"] }
+          description: Filtrar por disponibilidad
+        - name: visible
+          in: query
+          schema: { type: string, enum: ["true", "false"] }
+          description: Filtrar por visibilidad en menú
+      responses:
+        200:
+          description: Lista de productos con ingredientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Producto'
+
+    post:
+      tags: [Productos]
+      summary: Crear producto con ingredientes
+      description: "🔴🟡 Admin/dueño. Puede incluir array de ingredientes en batch."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, precioBase]
+              properties:
+                categoriaId: { type: string, format: uuid, nullable: true }
+                nombre: { type: string, example: "Taco al pastor" }
+                descripcion: { type: string, example: "Con piña y cilantro" }
+                precioBase: { type: number, example: 85.00 }
+                imagenUrl: { type: string, format: uri, nullable: true }
+                disponible: { type: boolean, default: true }
+                visibleMenu: { type: boolean, default: true }
+                ingredientes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      nombreIngrediente: { type: string, example: "Piña" }
+                      precioExtra: { type: number, default: 0, example: 15.00 }
+                      permiteDoble: { type: boolean, default: true }
+                      esBase: { type: boolean, default: true }
+      responses:
+        201:
+          description: Producto creado con ingredientes
+
+  /api/locales/{localId}/productos/{id}:
+    get:
+      tags: [Productos]
+      summary: Obtener producto con ingredientes
+      description: "🟢 Público — La tablet muestra el detalle y los ingredientes personalizables."
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Producto con ingredientes
+
+    patch:
+      tags: [Productos]
+      summary: Editar producto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                descripcion: { type: string }
+                precioBase: { type: number }
+                imagenUrl: { type: string, nullable: true }
+                disponible: { type: boolean }
+                visibleMenu: { type: boolean }
+      responses:
+        200:
+          description: Producto actualizado
+
+    delete:
+      tags: [Productos]
+      summary: Eliminar producto
+      description: "🔴 Solo dueño. Elimina ingredientes en cascada."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Producto eliminado con ingredientes
+
+  /api/locales/{localId}/productos/{id}/disponibilidad:
+    patch:
+      tags: [Productos]
+      summary: Toggle disponibilidad (agotado/disponible)
+      description: "🔴🟡 Admin/dueño. Botón rápido de 'Se agotó'."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [disponible]
+              properties:
+                disponible: { type: boolean }
+      responses:
+        200:
+          description: Disponibilidad actualizada
+
+  /api/locales/{localId}/productos/{productoId}/ingredientes:
+    post:
+      tags: [Productos]
+      summary: Agregar ingrediente a producto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: productoId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombreIngrediente]
+              properties:
+                nombreIngrediente: { type: string, example: "Queso extra" }
+                precioExtra: { type: number, default: 0, example: 20.00 }
+                permiteDoble: { type: boolean, default: true }
+                esBase: { type: boolean, default: true }
+      responses:
+        201:
+          description: Ingrediente agregado
+
+  /api/locales/{localId}/productos/{productoId}/ingredientes/{id}:
+    patch:
+      tags: [Productos]
+      summary: Editar ingrediente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: productoId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombreIngrediente: { type: string }
+                precioExtra: { type: number }
+                permiteDoble: { type: boolean }
+                esBase: { type: boolean }
+      responses:
+        200:
+          description: Ingrediente actualizado
+
+    delete:
+      tags: [Productos]
+      summary: Eliminar ingrediente
+      description: "🔴 Solo dueño."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: productoId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Ingrediente eliminado
+
+components:
+  schemas:
+    Producto:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        localId: { type: string, format: uuid }
+        categoriaId: { type: string, format: uuid, nullable: true }
+        nombre: { type: string, example: "Taco al pastor" }
+        descripcion: { type: string, example: "Con piña y cilantro" }
+        precioBase: { type: number, example: 85.00 }
+        imagenUrl: { type: string, nullable: true }
+        disponible: { type: boolean }
+        visibleMenu: { type: boolean }
+        ingredientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingrediente'
+        creadoAt: { type: string, format: date-time }
+
+    Ingrediente:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        productoId: { type: string, format: uuid }
+        nombreIngrediente: { type: string, example: "Piña" }
+        precioExtra: { type: number, example: 15.00 }
+        permiteDoble: { type: boolean }
+        esBase: { type: boolean }

@@ -1,0 +1,145 @@
+# src/api/docs/pedidos.yaml
+paths:
+  /api/orders/confirm:
+    post:
+      tags: [Pedidos]
+      summary: Confirmar pedido desde la tablet
+      description: |
+        🟢 Público — La tablet del cliente envía este endpoint.
+        Crea el pedido + detalle, marca la mesa como ocupada (si aplica),
+        y emite eventos WebSocket: new_order + mesa_updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [localId, deliveryType, total, customer, cart]
+              properties:
+                localId: { type: string, format: uuid }
+                deliveryType: { type: string, enum: [local, domicilio, llevar] }
+                total: { type: number, example: 290.00 }
+                customer:
+                  type: object
+                  required: [name, phone]
+                  properties:
+                    name: { type: string, example: "Juan Pérez" }
+                    phone: { type: string, example: "9991234567" }
+                    table: { type: string, format: uuid, description: "Solo si deliveryType = local" }
+                    address: { type: string, description: "Solo si deliveryType = domicilio" }
+                    landmark: { type: string, description: "Referencia de ubicación" }
+                cart:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [id, quantity, subtotal]
+                    properties:
+                      id: { type: string, format: uuid, description: "ID del producto" }
+                      quantity: { type: integer, minimum: 1 }
+                      mods: { description: "Personalizaciones del producto" }
+                      subtotal: { type: number }
+            example:
+              localId: "11111111-1111-1111-1111-111111111111"
+              deliveryType: "local"
+              total: 290
+              customer:
+                name: "Juan Pérez"
+                phone: "9991234567"
+                table: "22222222-2222-2222-2222-222222222222"
+              cart:
+                - id: "33333333-3333-3333-3333-333333333333"
+                  quantity: 2
+                  mods: [{ ingrediente: "Sin cebolla" }]
+                  subtotal: 170
+                - id: "44444444-4444-4444-4444-444444444444"
+                  quantity: 1
+                  subtotal: 120
+      responses:
+        201:
+          description: Pedido confirmado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      orderId: { type: string, format: uuid }
+        400:
+          description: Datos inválidos o mesa no encontrada
+
+  /api/orders:
+    get:
+      tags: [Pedidos]
+      summary: Listar pedidos (panel admin / Kanban)
+      description: "🔴🟡 Admin ve solo su local. Dueño puede filtrar por cualquier local."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filtrar por local (solo dueño)
+        - name: estado
+          in: query
+          schema: { type: string, enum: [entrante, cocina, listo, finalizado] }
+        - name: fecha
+          in: query
+          schema: { type: string, format: date }
+          description: "Formato YYYY-MM-DD"
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 30, maximum: 100 }
+      responses:
+        200:
+          description: Lista paginada de pedidos
+
+  /api/orders/{id}:
+    get:
+      tags: [Pedidos]
+      summary: Detalle de un pedido
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Pedido con detalle completo
+
+  /api/orders/{id}/estado:
+    patch:
+      tags: [Pedidos]
+      summary: Avanzar estado del pedido (Kanban)
+      description: |
+        🔴🟡 Admin/dueño. Avanza el pedido en el flujo:
+        entrante → cocina → listo → finalizado.
+        Si se finaliza y era el último pedido de la mesa, la mesa se libera automáticamente.
+        Emite eventos WebSocket: order_updated + mesa_updated (si aplica).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado: { type: string, enum: [cocina, listo, finalizado] }
+      responses:
+        200:
+          description: Estado actualizado

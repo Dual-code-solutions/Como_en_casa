@@ -1,0 +1,111 @@
+# src/api/docs/locales.yaml
+paths:
+  /api/locales:
+    get:
+      tags: [Locales]
+      summary: Listar sucursales
+      description: "🔴 Solo dueño."
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Lista de sucursales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Local'
+
+    post:
+      tags: [Locales]
+      summary: Crear sucursal
+      description: "🔴 Solo dueño."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombreSucursal, slug]
+              properties:
+                nombreSucursal: { type: string, example: "Timucuy" }
+                slug: { type: string, example: "timucuy", pattern: "^[a-z0-9-]+$" }
+                configuracion: { type: object, example: {} }
+      responses:
+        201:
+          description: Sucursal creada
+        400:
+          description: Slug duplicado
+
+  /api/locales/{id}:
+    get:
+      tags: [Locales]
+      summary: Obtener sucursal
+      description: "Admin solo puede ver su propio local."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Detalle de la sucursal
+
+    patch:
+      tags: [Locales]
+      summary: Actualizar sucursal
+      description: "🔴 Solo dueño."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombreSucursal: { type: string }
+                slug: { type: string }
+                configuracion: { type: object }
+      responses:
+        200:
+          description: Sucursal actualizada
+
+    delete:
+      tags: [Locales]
+      summary: Eliminar sucursal
+      description: "🔴 Solo dueño."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Sucursal eliminada
+
+components:
+  schemas:
+    Local:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombreSucursal: { type: string, example: "Timucuy" }
+        slug: { type: string, example: "timucuy" }
+        configuracion: { type: object }
+        creadoAt: { type: string, format: date-time }

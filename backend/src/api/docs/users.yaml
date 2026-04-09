@@ -1,0 +1,113 @@
+# src/api/docs/users.yaml
+paths:
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar usuarios
+      description: "Dueño ve todos. Admin solo ve los de su local."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_local
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filtrar por local (solo dueño)
+      responses:
+        200:
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+    post:
+      tags: [Users]
+      summary: Crear usuario (admin)
+      description: "🔴 Solo dueño. Crea en Supabase Auth + tabla perfiles."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, rol, primerNombre, primerApellido]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+                localId: { type: string, format: uuid, nullable: true }
+                rol: { type: string, enum: [dueño, admin] }
+                primerNombre: { type: string, example: "Carlos" }
+                segundoNombre: { type: string, nullable: true }
+                primerApellido: { type: string, example: "López" }
+                segundoApellido: { type: string, nullable: true }
+                telefonoContacto: { type: string, example: "9991234567" }
+      responses:
+        201:
+          description: Usuario creado
+        400:
+          description: Email ya existe o datos inválidos
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Obtener usuario por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Detalle del usuario
+
+    patch:
+      tags: [Users]
+      summary: Actualizar usuario
+      description: "Admin solo puede editar su propio perfil. Dueño edita cualquiera."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                primerNombre: { type: string }
+                segundoNombre: { type: string, nullable: true }
+                primerApellido: { type: string }
+                segundoApellido: { type: string, nullable: true }
+                telefonoContacto: { type: string }
+      responses:
+        200:
+          description: Usuario actualizado
+
+  /api/users/{id}/toggle-status:
+    patch:
+      tags: [Users]
+      summary: Activar/desactivar cuenta
+      description: "🔴 Solo dueño. No se puede desactivar al dueño."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Estado de cuenta cambiado

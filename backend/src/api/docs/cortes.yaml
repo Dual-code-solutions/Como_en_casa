@@ -1,0 +1,88 @@
+# src/api/docs/cortes.yaml
+paths:
+  /api/locales/{localId}/cortes:
+    post:
+      tags: [Cortes]
+      summary: Generar corte de caja del día
+      description: |
+        🔴🟡 Admin/dueño con localGuard.
+        Calcula automáticamente: total ingresos, conteo por modalidad.
+        Solo se permite un corte por día por local.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        201:
+          description: Corte generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    $ref: '#/components/schemas/Corte'
+        400:
+          description: Ya se generó un corte hoy
+
+    get:
+      tags: [Cortes]
+      summary: Historial de cortes
+      description: "🔴🟡 Admin/dueño. Filtrable por rango de fechas."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+          description: "Fecha inicio (YYYY-MM-DD)"
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+          description: "Fecha fin (YYYY-MM-DD)"
+      responses:
+        200:
+          description: Lista de cortes
+
+  /api/locales/{localId}/cortes/{id}:
+    get:
+      tags: [Cortes]
+      summary: Detalle de un corte
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Detalle del corte de caja
+
+components:
+  schemas:
+    Corte:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        localId: { type: string, format: uuid }
+        fechaCorte: { type: string, format: date }
+        totalIngresosDia: { type: number, example: 15780.50 }
+        conteoPedidosLocal: { type: integer, example: 45 }
+        conteoPedidosDomicilio: { type: integer, example: 12 }
+        conteoPedidosLlevar: { type: integer, example: 8 }
+        resumenMetodosPago: { type: object }
+        adminCierre: { type: string, format: uuid }
+        cerradoAt: { type: string, format: date-time }
