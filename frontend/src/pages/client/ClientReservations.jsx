@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/client/Navbar';
 import { showAlert } from '../../utils/swalCustom';
 import { QRCodeSVG } from 'qrcode.react';
+import logoImg from '../../assets/logo.png';
 import './ClientReservations.css';
 
 const LOCAL_ID = '02ef18a9-62aa-4fcd-98ee-1134e4aaf197';
@@ -44,21 +45,27 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
       const { default: jsPDF }       = await import('jspdf');
 
       // Mostrar el ticket oculto momentáneamente para capturarlo
-      ticketRef.current.style.display = 'block';
-      await new Promise(r => setTimeout(r, 120)); // esperar render
+      // Usamos inline-block para que html2canvas solo capture el ancho del ticket y no toda la pantalla
+      ticketRef.current.style.display = 'inline-block';
+      await new Promise(r => setTimeout(r, 150)); // esperar render
 
       const canvas = await html2canvas(ticketRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: null // transparente para respetar el radio del borde
       });
 
       ticketRef.current.style.display = 'none';
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [90, 160] });
-      pdf.addImage(imgData, 'PNG', 0, 0, 90, 160);
-      pdf.save(`ticket-reserva-${formData.nombre_cliente.replace(/\s+/g, '-')}.pdf`);
+      
+      // Calcular el alto dinámico para mantener las proporciones exactas sin estiramientos
+      const pdfWidth = 80; // 80mm ancho tipo ticket de caja grande
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Ticket-Reserva-${formData.nombre_cliente.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error('Error al generar ticket:', err);
       showAlert('Error', 'No se pudo generar el ticket. Intenta de nuevo.', 'error');
@@ -171,63 +178,73 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
       </div>
 
       {/* ── Ticket imprimible OCULTO (solo para html2canvas) ── */}
-      <div ref={ticketRef} style={{ display: 'none' }}>
-        <div style={{
-          width: '340px', background: '#fff', fontFamily: "'Georgia', serif",
-          borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-        }}>
-          {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg, #6B2D0E 0%, #A0522D 100%)', padding: '20px 24px', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#F5DEB3', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase' }}>Restaurante</p>
-            <h2 style={{ margin: '4px 0 2px', color: '#fff', fontSize: '22px', fontWeight: 'bold' }}>Como en Casa</h2>
-            <p style={{ margin: 0, color: '#F5DEB3', fontSize: '11px', letterSpacing: '2px' }}>Sucursal Timucuy</p>
-          </div>
-
-          {/* Status badge */}
-          <div style={{ background: '#2d7a2d', padding: '8px 24px', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>✓ RESERVA CONFIRMADA</p>
-          </div>
-
-          {/* Details */}
-          <div style={{ padding: '20px 24px' }}>
-            {[
-              { label: 'Nombre', value: formData.nombre_cliente },
-              { label: 'Fecha', value: fechaFormateada },
-              { label: 'Hora', value: `${formData.hora_reserva} hrs` },
-              { label: 'Personas', value: `${formData.num_personas} persona${formData.num_personas > 1 ? 's' : ''}` },
-              ...(formData.notas_adicionales ? [{ label: 'Notas', value: formData.notas_adicionales }] : [])
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ece8' }}>
-                <span style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'sans-serif' }}>{label}</span>
-                <span style={{ color: '#3a1f0e', fontSize: '13px', fontWeight: '600', fontFamily: 'sans-serif', maxWidth: '180px', textAlign: 'right' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Anticipo notice */}
-          <div style={{ background: '#fdf6f0', margin: '0 16px', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
-            <p style={{ margin: 0, fontSize: '11px', color: '#8B4513', fontFamily: 'sans-serif', textAlign: 'center' }}>
-              💰 Anticipo requerido: <strong>$250.00 MXN</strong><br/>
-              Se descontará de tu cuenta final
-            </p>
-          </div>
-
-          {/* QR Code */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 24px 16px' }}>
-            <p style={{ margin: '0 0 8px', fontSize: '10px', color: '#aaa', fontFamily: 'sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>Escanea para verificar</p>
-            <div style={{ padding: '8px', border: '1px solid #e8e0d8', borderRadius: '8px', background: '#fff' }}>
-              <QRCodeSVG value={qrData} size={90} fgColor="#6B2D0E" />
+      <div style={{ position: 'fixed', top: '-10000px', left: '-10000px' }}>
+        <div ref={ticketRef} style={{ display: 'none', background: 'transparent' }}>
+          <div style={{
+            width: '360px', background: '#FAFAFA', fontFamily: "'Poppins', sans-serif",
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid #EAEAEA'
+          }}>
+            {/* Header branding */}
+            <div style={{ background: '#4A2C2A', padding: '24px', textAlign: 'center', position: 'relative' }}>
+              <img src={logoImg} alt="Como en Casa" style={{ width: '140px', marginBottom: '16px' }} />
+              <p style={{ margin: 0, color: '#D5BFA5', fontSize: '10px', letterSpacing: '4px', textTransform: 'uppercase', fontWeight: '600' }}>Restaurante</p>
+              <h2 style={{ margin: '2px 0 0', color: '#FFF', fontSize: '24px', fontFamily: "'Playfair Display', serif" }}>Como en Casa</h2>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div style={{ background: '#f9f5f1', padding: '12px 24px', textAlign: 'center', borderTop: '1px dashed #ddd' }}>
-            <p style={{ margin: 0, fontSize: '10px', color: '#999', fontFamily: 'sans-serif' }}>
-              Presenta este ticket al llegar al restaurante
-            </p>
-            <p style={{ margin: '4px 0 0', fontSize: '9px', color: '#bbb', fontFamily: 'sans-serif' }}>
-              ID: {reservaId ? reservaId.slice(0, 8).toUpperCase() : 'PENDIENTE'}
-            </p>
+            {/* Dotted separator */}
+            <div style={{ display: 'flex', alignItems: 'center', background: '#FAFAFA' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fff', border: '1px solid #EAEAEA', marginLeft: '-6px' }}></div>
+              <div style={{ flex: 1, borderTop: '2px dashed #D5BFA5' }}></div>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fff', border: '1px solid #EAEAEA', marginRight: '-6px' }}></div>
+            </div>
+
+            {/* Status */}
+            <div style={{ padding: '20px 24px', textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: '#2E7D32', fontWeight: '800' }}>RESERVA CONFIRMADA</h3>
+              <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>ID: {reservaId ? reservaId.slice(0, 8).toUpperCase() : 'PENDIENTE'}</p>
+            </div>
+
+            {/* Content Table */}
+            <div style={{ padding: '0 24px 20px' }}>
+              {[
+                { label: 'NOMBRE', value: formData.nombre_cliente },
+                { label: 'FECHA', value: fechaFormateada },
+                { label: 'HORA', value: `${formData.hora_reserva} hrs` },
+                { label: 'PERSONAS', value: `${formData.num_personas} persona${formData.num_personas > 1 ? 's' : ''}` },
+                ...(formData.notas_adicionales ? [{ label: 'NOTAS', value: formData.notas_adicionales }] : [])
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F0ECE8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#8A7060', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}>{label}</span>
+                  </div>
+                  <span style={{ color: '#3D2B1F', fontSize: '13px', fontWeight: '700', maxWidth: '180px', textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Payment Box */}
+            <div style={{ background: '#FFF3E8', margin: '0 24px 20px', borderRadius: '10px', padding: '14px', border: '1px solid #F2DEC9', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '12px', color: '#C0622A', fontWeight: '700' }}>
+                ANTICIPO REQUERIDO
+              </p>
+              <h2 style={{ margin: '4px 0', fontSize: '26px', color: '#8B4513' }}>$250.00</h2>
+              <p style={{ margin: 0, fontSize: '10px', color: '#8A7060' }}>Se descontará de tu cuenta final</p>
+            </div>
+
+            {/* QR Scanner */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 24px 24px' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}>Escanea para verificar</p>
+              <div style={{ padding: '8px', border: '1px solid #E8E0D8', borderRadius: '10px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <QRCodeSVG value={qrData} size={100} fgColor="#4A2C2A" />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ background: '#4A2C2A', padding: '14px 24px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: '#D5BFA5', fontWeight: '500' }}>
+                ¡Te esperamos con los brazos abiertos!
+              </p>
+            </div>
           </div>
         </div>
       </div>
