@@ -1,0 +1,510 @@
+================================================================================
+    COMO EN CASA — LISTA COMPLETA DE ENDPOINTS API (BACKEND NODE.JS + EXPRESS)
+================================================================================
+    Fecha de generación: 08/04/2026
+    Base: Base_datos.sql (con tabla mesas incluida)
+    Roles del sistema: dueño | admin (cajero/recepcionista)
+    Acceso público: Tablet del cliente (sin autenticación)
+================================================================================
+
+RESUMEN GENERAL
+───────────────
+Total de endpoints: 38
+Organizados en 8 módulos funcionales.
+Principio: Un endpoint = una responsabilidad. No se duplican funciones.
+
+ROLES Y PERMISOS
+────────────────
+  🔴 dueño    → Acceso TOTAL. Ve todas las sucursales. Crea admins, locales, etc.
+  🟡 admin    → Acceso limitado a SU sucursal. Gestiona pedidos, mesas, reservas.
+  🟢 público  → Sin autenticación. Es el cliente en la tablet o celular.
+
+NOTA SOBRE SEGURIDAD
+────────────────────
+  - Todos los endpoints marcados como 🔴 o 🟡 requieren un JWT válido en el header:
+    Authorization: Bearer <token>
+  - Un middleware verificará el token y extraerá: userId, rol, localId.
+  - Los endpoints 🟡 admin solo podrán operar sobre datos de SU propio localId.
+  - Los endpoints 🔴 dueño podrán operar sobre CUALQUIER localId.
+
+================================================================================
+  1. AUTENTICACIÓN (auth)
+     Ruta base: /api/auth
+================================================================================
+
+  #01  POST /api/auth/login
+       Descripción: Login con email + contraseña (para dueño y admin).
+                    Valida credenciales contra Supabase Auth.
+                    Retorna JWT propio del backend + datos del perfil.
+       Body: { email, password }
+       Respuesta: { token, user: { id, rol, id_local, nombre } }
+       Permisos: 🟢 Público (es la puerta de entrada)
+
+  #02  POST /api/auth/logout
+       Descripción: Invalida la sesión del lado del servidor (opcional,
+                    si se implementa blacklist de tokens).
+       Headers: Authorization: Bearer <token>
+       Permisos: 🔴🟡 Cualquier usuario autenticado
+
+  #03  GET /api/auth/me
+       Descripción: Retorna el perfil completo del usuario autenticado.
+                    Útil para que el frontend valide la sesión al recargar.
+       Headers: Authorization: Bearer <token>
+       Respuesta: { id, rol, id_local, primer_nombre, primer_apellido, ... }
+       Permisos: 🔴🟡 Cualquier usuario autenticado
+
+================================================================================
+  2. GESTIÓN DE USUARIOS / PERFILES (users)
+     Ruta base: /api/users
+     Tabla: perfiles (vinculada a auth.users de Supabase)
+================================================================================
+
+  #04  GET /api/users
+       Descripción: Lista todos los perfiles del sistema.
+                    El dueño ve TODOS. Un admin solo ve los de SU local.
+       Query params opcionales: ?id_local=uuid
+       Permisos: 🔴 Dueño (todos) | 🟡 Admin (solo su local)
+
+  #05  GET /api/users/:id
+       Descripción: Obtiene el perfil detallado de un usuario específico.
+       Permisos: 🔴 Dueño | 🟡 Admin (solo si es de su local o él mismo)
+
+  #06  POST /api/users
+       Descripción: Crea un nuevo usuario (admin/cajero) para una sucursal.
+                    Internamente crea el registro en auth.users de Supabase
+                    y luego inserta en la tabla perfiles.
+       Body: { email, password, id_local, rol, primer_nombre,
+               primer_apellido, telefono_contacto, ... }
+       Permisos: 🔴 Solo dueño
+
+  #07  PATCH /api/users/:id
+       Descripción: Actualiza datos de un perfil (nombre, teléfono, etc.).
+                    NO permite cambiar el rol (eso es otro endpoint o
+                    se restringe solo al dueño).
+       Body: { primer_nombre?, primer_apellido?, telefono_contacto?, estado_cuenta? }
+       Permisos: 🔴 Dueño (cualquier perfil) | 🟡 Admin (solo su propio perfil)
+
+  #08  PATCH /api/users/:id/toggle-status
+       Descripción: Activa o desactiva la cuenta de un admin.
+                    Cambia estado_cuenta a true/false.
+                    Un admin desactivado no puede iniciar sesión.
+       Permisos: 🔴 Solo dueño
+
+================================================================================
+  3. GESTIÓN DE LOCALES / SUCURSALES (locales)
+     Ruta base: /api/locales
+     Tabla: locales
+================================================================================
+
+  #09  GET /api/locales
+       Descripción: Lista todas las sucursales registradas.
+       Permisos: 🔴 Solo dueño
+
+  #10  GET /api/locales/:id
+       Descripción: Obtiene los datos de una sucursal específica,
+                    incluyendo su configuración JSON.
+       Permisos: 🔴 Dueño | 🟡 Admin (solo su propio local)
+
+  #11  POST /api/locales
+       Descripción: Crea una nueva sucursal.
+       Body: { nombre_sucursal, slug, configuracion? }
+       Permisos: 🔴 Solo dueño
+
+  #12  PATCH /api/locales/:id
+       Descripción: Actualiza nombre, slug o configuración de una sucursal.
+       Body: { nombre_sucursal?, slug?, configuracion? }
+       Permisos: 🔴 Solo dueño
+
+  #13  DELETE /api/locales/:id
+       Descripción: Elimina una sucursal (soft delete recomendado).
+                    CUIDADO: Verificar que no tenga datos dependientes activos.
+       Permisos: 🔴 Solo dueño
+
+================================================================================
+  4. GESTIÓN DE MESAS (mesas)
+     Ruta base: /api/locales/:localId/mesas
+     Tabla: mesas
+     NOTA: Las mesas siempre están en el contexto de un local.
+================================================================================
+
+  #14  GET /api/locales/:localId/mesas
+       Descripción: Lista TODAS las mesas de una sucursal con su estado actual.
+                    La TABLET del cliente usa este endpoint para mostrar
+                    las mesas disponibles (verdes) y ocupadas (naranjas).
+                    El admin también lo usa para su panel de gestión.
+       Respuesta: [{ id, nombre_o_numero, capacidad, estado_actual, ... }]
+       Permisos: 🟢 Público (tablet) | 🟡 Admin | 🔴 Dueño
+
+  #15  POST /api/locales/:localId/mesas
+       Descripción: Agrega una nueva mesa al catálogo de la sucursal.
+       Body: { nombre_o_numero, capacidad }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #16  PATCH /api/locales/:localId/mesas/:id
+       Descripción: Edita los datos de una mesa (nombre, capacidad).
+       Body: { nombre_o_numero?, capacidad? }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #17  PATCH /api/locales/:localId/mesas/:id/estado
+       Descripción: Cambia el estado de una mesa.
+                    → 'disponible' (al liberar/limpiar)
+                    → 'ocupada' (al confirmar pedido en tablet)
+                    Este endpoint también lo usa el personal de limpieza
+                    para devolver la mesa a 'disponible'.
+       Body: { estado_actual: 'disponible' | 'ocupada' }
+       Permisos: 🟢 Público (tablet, al confirmar pedido - controlado por backend)
+                 🟡 Admin (liberar mesa manualmente)
+
+  #18  DELETE /api/locales/:localId/mesas/:id
+       Descripción: Elimina una mesa del catálogo.
+                    Solo si no tiene pedidos activos vinculados.
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+================================================================================
+  5. GESTIÓN DEL MENÚ: CATEGORÍAS (categorias)
+     Ruta base: /api/locales/:localId/categorias
+     Tabla: categorias
+================================================================================
+
+  #19  GET /api/locales/:localId/categorias
+       Descripción: Lista todas las categorías del menú de una sucursal,
+                    ordenadas por el campo 'orden'.
+                    La TABLET del cliente usa esto para el carrusel de categorías.
+       Respuesta: [{ id, nombre, orden }]
+       Permisos: 🟢 Público (tablet/menú) | 🟡 Admin | 🔴 Dueño
+
+  #20  POST /api/locales/:localId/categorias
+       Descripción: Crea una nueva categoría para el menú.
+       Body: { nombre, orden? }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #21  PATCH /api/locales/:localId/categorias/:id
+       Descripción: Edita nombre u orden de una categoría.
+       Body: { nombre?, orden? }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #22  DELETE /api/locales/:localId/categorias/:id
+       Descripción: Elimina una categoría.
+                    Los productos vinculados quedarían sin categoría (manejar).
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+================================================================================
+  6. GESTIÓN DEL MENÚ: PRODUCTOS E INGREDIENTES (productos)
+     Ruta base: /api/locales/:localId/productos
+     Tablas: productos + ingredientes_personalizables
+================================================================================
+
+  #23  GET /api/locales/:localId/productos
+       Descripción: Lista todos los productos de la sucursal.
+                    Incluye sus ingredientes personalizables (JOIN).
+                    La TABLET filtra por visible_menu=true y disponible=true.
+       Query params opcionales: ?categoria=uuid&disponible=true&visible=true
+       Respuesta: [{ id, nombre, precio_base, imagen_url,
+                     ingredientes_personalizables: [...], ... }]
+       Permisos: 🟢 Público (tablet/menú) | 🟡 Admin | 🔴 Dueño
+
+  #24  GET /api/locales/:localId/productos/:id
+       Descripción: Detalle de un producto específico con sus ingredientes.
+       Permisos: 🟢 Público | 🟡 Admin | 🔴 Dueño
+
+  #25  POST /api/locales/:localId/productos
+       Descripción: Crea un nuevo producto en el menú.
+       Body: { nombre, descripcion, precio_base, id_categoria,
+               imagen_url?, disponible?, visible_menu?,
+               ingredientes: [{ nombre_ingrediente, precio_extra,
+                                permite_doble, es_base }] }
+       NOTA: Los ingredientes se insertan en lote junto con el producto.
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #26  PATCH /api/locales/:localId/productos/:id
+       Descripción: Edita un producto (nombre, precio, disponibilidad, etc.).
+       Body: { nombre?, descripcion?, precio_base?, imagen_url?,
+               disponible?, visible_menu?, id_categoria? }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #27  PATCH /api/locales/:localId/productos/:id/disponibilidad
+       Descripción: Toggle rápido para marcar un producto como
+                    agotado (disponible=false) o de vuelta (disponible=true).
+                    Endpoint separado para facilitar la acción rápida en UI.
+       Body: { disponible: true | false }
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+
+  #28  DELETE /api/locales/:localId/productos/:id
+       Descripción: Elimina un producto y sus ingredientes personalizables
+                    en cascada.
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  ── INGREDIENTES PERSONALIZABLES (sub-recurso de productos) ──
+
+  #29  POST /api/locales/:localId/productos/:productoId/ingredientes
+       Descripción: Agrega un nuevo ingrediente personalizable a un producto.
+       Body: { nombre_ingrediente, precio_extra, permite_doble, es_base }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #30  PATCH /api/locales/:localId/productos/:productoId/ingredientes/:id
+       Descripción: Edita un ingrediente (precio extra, permite doble, etc.).
+       Body: { nombre_ingrediente?, precio_extra?, permite_doble?, es_base? }
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+  #31  DELETE /api/locales/:localId/productos/:productoId/ingredientes/:id
+       Descripción: Elimina un ingrediente personalizable de un producto.
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+================================================================================
+  7. PEDIDOS (orders)
+     Ruta base: /api/orders
+     Tablas: pedidos + detalle_pedido + mesas (estado)
+     NOTA: Este módulo incluye WebSocket para tiempo real.
+================================================================================
+
+  #32  POST /api/orders/confirm
+       Descripción: Confirma un pedido nuevo desde la TABLET del cliente.
+                    1. Inserta en tabla 'pedidos' (con id_mesa si es "local").
+                    2. Inserta items en 'detalle_pedido'.
+                    3. Si tiene mesa → cambia estado_actual a 'ocupada'.
+                    4. Emite evento WebSocket 'new_order' al admin de esa sucursal.
+       Body: { customer: { name, phone, table? (ahora id_mesa), address?, landmark? },
+               cart: [{ id, quantity, mods, subtotal }],
+               total, deliveryType, localId }
+       Respuesta: { success, orderId }
+       Permisos: 🟢 Público (tablet del cliente)
+       WebSocket: Emite 'new_order' al room del localId
+
+  #33  GET /api/orders?localId=uuid&estado=entrante
+       Descripción: Lista pedidos de una sucursal.
+                    Filtrable por estado para alimentar el Kanban del admin.
+       Query params: ?localId=uuid (obligatorio para admin)
+                     &estado=entrante|cocina|listo|finalizado
+                     &fecha=2026-04-08
+       Respuesta: [{ id, nombre_cliente, modalidad, estado, id_mesa,
+                     total_pago, creado_at, detalle_pedido: [...] }]
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño (cualquier local)
+
+  #34  GET /api/orders/:id
+       Descripción: Detalle completo de un pedido específico.
+                    Incluye JOIN con detalle_pedido + productos + mesa.
+       Respuesta: { ...pedido, detalle: [{ producto, cantidad, personalizacion,
+                   subtotal }], mesa: { nombre_o_numero } }
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+
+  #35  PATCH /api/orders/:id/estado
+       Descripción: Avanza el estado de un pedido en el flujo Kanban.
+                    entrante → cocina → listo → finalizado
+                    Al llegar a 'finalizado', el admin puede liberar la mesa
+                    (o se libera automáticamente si ya no hay pedidos activos).
+                    Emite evento WebSocket 'order_updated' al room del local.
+       Body: { estado: 'cocina' | 'listo' | 'finalizado' }
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+       WebSocket: Emite 'order_updated' al room del localId
+
+================================================================================
+  8. RESERVACIONES (reservaciones)
+     Ruta base: /api/reservaciones
+     Tabla: reservaciones + mesas (disponibilidad por fecha)
+================================================================================
+
+  #36  POST /api/reservaciones
+       Descripción: El cliente solicita una reservación desde su celular/tablet.
+                    Se guarda con estado 'pendiente'.
+                    Opcionalmente puede incluir id_mesa si escogió una.
+       Body: { id_local, nombre_cliente, telefono, fecha_reserva,
+               hora_reserva, num_personas, notas_adicionales?, id_mesa? }
+       Respuesta: { success, reservacionId }
+       Permisos: 🟢 Público (cliente)
+       WebSocket (opcional): Emite 'new_reservation' al admin
+
+  #37  GET /api/reservaciones?localId=uuid
+       Descripción: Lista reservaciones de una sucursal.
+                    Filtrable por fecha, estado, etc.
+       Query params: ?localId=uuid (obligatorio)
+                     &fecha=2026-04-10
+                     &estado=pendiente|aceptada|cancelada
+       Respuesta: [{ id, nombre_cliente, telefono, fecha_reserva,
+                     hora_reserva, num_personas, anticipo_pagado,
+                     estado, mesa: { nombre_o_numero }  }]
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+
+  #38  PATCH /api/reservaciones/:id
+       Descripción: Actualiza una reservación. Operaciones principales:
+                    - Confirmar anticipo: { anticipo_pagado: true, estado: 'aceptada' }
+                    - Cancelar: { estado: 'cancelada' }
+                    - Asignar mesa: { id_mesa: uuid }
+                    - Cambiar método de pago: { metodo_pago_anticipo: 'efectivo' }
+       Body: { anticipo_pagado?, estado?, id_mesa?, metodo_pago_anticipo?,
+               monto_anticipo? }
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+
+================================================================================
+  9. CORTES DE CAJA / HISTORIAL (historial_cortes)
+     Ruta base: /api/locales/:localId/cortes
+     Tabla: historial_cortes
+================================================================================
+
+  NOTA: Este módulo se usa para cerrar el día y guardar un resumen
+        financiero. No hay muchas operaciones CRUD, es más de consulta.
+
+  #39  POST /api/locales/:localId/cortes
+       Descripción: Genera el corte del día para una sucursal.
+                    El backend calcula automáticamente:
+                    - total_ingresos_dia (SUM de pedidos finalizados del día)
+                    - conteo_pedidos_local, conteo_pedidos_domicilio, conteo_pedidos_llevar
+                    - resumen_metodos_pago (JSON con desglose)
+                    Guarda el id del admin que hizo el cierre.
+       Body: { } (el backend calcula todo internamente)
+       Respuesta: { success, corte: { id, total_ingresos_dia, ... } }
+       Permisos: 🟡 Admin (su local) | 🔴 Dueño
+
+  #40  GET /api/locales/:localId/cortes
+       Descripción: Historial de cortes de caja de una sucursal.
+       Query params: ?desde=2026-04-01&hasta=2026-04-08
+       Respuesta: [{ id, fecha_corte, total_ingresos_dia, conteo_pedidos_local,
+                     conteo_pedidos_domicilio, conteo_pedidos_llevar,
+                     resumen_metodos_pago, cerrado_at }]
+       Permisos: 🔴 Dueño (cualquier local) | 🟡 Admin (solo su local)
+
+  #41  GET /api/locales/:localId/cortes/:id
+       Descripción: Detalle de un corte de caja específico.
+       Permisos: 🔴 Dueño | 🟡 Admin (su local)
+
+================================================================================
+  EVENTOS WEBSOCKET (Socket.IO)
+  NO son endpoints HTTP, pero sí son flujos de comunicación en tiempo real.
+================================================================================
+
+  Evento: 'join_local'
+  Dirección: Cliente → Servidor
+  Descripción: El admin se conecta y se une al "room" de su sucursal.
+  Payload: localId (string uuid)
+
+  Evento: 'new_order'
+  Dirección: Servidor → Clientes en room
+  Descripción: Se dispara cuando un pedido nuevo se confirma (#32).
+  Payload: { orderId, customer, deliveryType, total, mesa }
+
+  Evento: 'order_updated'
+  Dirección: Servidor → Clientes en room
+  Descripción: Se dispara cuando un pedido cambia de estado (#35).
+  Payload: { orderId, nuevoEstado }
+
+  Evento: 'mesa_updated'
+  Dirección: Servidor → Clientes en room
+  Descripción: Se dispara cuando una mesa cambia de estado (#17).
+               La tablet del cliente refresca la lista de mesas disponibles.
+  Payload: { mesaId, estado_actual }
+
+  Evento: 'new_reservation' (opcional)
+  Dirección: Servidor → Clientes en room
+  Descripción: Se dispara cuando llega una nueva reservación (#36).
+  Payload: { reservacionId, nombre_cliente, fecha, hora }
+
+================================================================================
+  RESUMEN POR NÚMERO DE ENDPOINTS POR MÓDULO
+================================================================================
+
+  ┌─────────────────────────┬──────────┬──────────────────────────┐
+  │ Módulo                  │ Cantidad │ Métodos                  │
+  ├─────────────────────────┼──────────┼──────────────────────────┤
+  │ 1. Autenticación        │    3     │ POST, POST, GET          │
+  │ 2. Usuarios/Perfiles    │    5     │ GET, GET, POST, PATCH x2 │
+  │ 3. Locales/Sucursales   │    5     │ GET, GET, POST, PATCH,   │
+  │                         │          │ DELETE                   │
+  │ 4. Mesas                │    5     │ GET, POST, PATCH x2,     │
+  │                         │          │ DELETE                   │
+  │ 5. Categorías           │    4     │ GET, POST, PATCH, DELETE │
+  │ 6. Productos + Ingred.  │    9     │ GET x2, POST x2, PATCH  │
+  │                         │          │ x3, DELETE x2            │
+  │ 7. Pedidos              │    4     │ POST, GET x2, PATCH      │
+  │ 8. Reservaciones        │    3     │ POST, GET, PATCH         │
+  │ 9. Cortes de Caja       │    3     │ POST, GET x2             │
+  ├─────────────────────────┼──────────┼──────────────────────────┤
+  │ TOTAL                   │   41     │                          │
+  └─────────────────────────┴──────────┴──────────────────────────┘
+
+  Eventos WebSocket:          5 eventos
+
+================================================================================
+  RESUMEN DE PERMISOS POR ENDPOINT
+================================================================================
+
+  🟢 PÚBLICO (Sin auth - Tablet/Cliente):
+     #01  POST /api/auth/login
+     #14  GET  /api/locales/:localId/mesas
+     #19  GET  /api/locales/:localId/categorias
+     #23  GET  /api/locales/:localId/productos
+     #24  GET  /api/locales/:localId/productos/:id
+     #32  POST /api/orders/confirm
+     #36  POST /api/reservaciones
+
+  🟡 ADMIN (Su propio local únicamente):
+     #02, #03, #04, #05, #07
+     #10
+     #14, #15, #16, #17, #18
+     #19, #20, #21, #22
+     #23, #24, #25, #26, #27, #28, #29, #30, #31
+     #33, #34, #35
+     #37, #38
+     #39, #40, #41
+
+  🔴 DUEÑO (Acceso total, todas las sucursales):
+     Todos los endpoints anteriores + estos exclusivos:
+     #06  POST  /api/users               (crear admins)
+     #08  PATCH /api/users/:id/toggle     (activar/desactivar admin)
+     #09  GET   /api/locales              (ver TODOS los locales)
+     #11  POST  /api/locales              (crear sucursal)
+     #12  PATCH /api/locales/:id          (editar sucursal)
+     #13  DELETE /api/locales/:id         (eliminar sucursal)
+
+================================================================================
+  NOTAS IMPORTANTES PARA EL DESARROLLO
+================================================================================
+
+  1. MIDDLEWARE DE AUTENTICACIÓN:
+     Crear un middleware 'authMiddleware' que:
+     - Extraiga el JWT del header Authorization
+     - Verifique y decodifique el token
+     - Adjunte al req: req.userId, req.userRole, req.userLocalId
+
+  2. MIDDLEWARE DE AUTORIZACIÓN:
+     Crear helpers reutilizables:
+     - requireRole('dueño')        → Solo dueños
+     - requireRole('admin', 'dueño') → Admin o dueño
+     - requireOwnLocal()           → Verifica que el localId del param
+                                      coincida con el localId del token
+
+  3. NO DUPLICAR LÓGICA:
+     El endpoint GET /api/locales/:localId/productos (#23) sirve tanto
+     para la tablet del cliente como para el panel admin. El frontend
+     simplemente filtra por query params diferentes.
+
+  4. ESTRUCTURA DE ARCHIVOS SUGERIDA PARA EL BACKEND:
+     backend/
+     ├── index.js
+     ├── config/
+     │   └── supabaseClient.js
+     ├── middleware/
+     │   ├── authMiddleware.js
+     │   └── roleMiddleware.js
+     ├── routes/
+     │   ├── auth.js
+     │   ├── users.js
+     │   ├── locales.js
+     │   ├── mesas.js
+     │   ├── categorias.js
+     │   ├── productos.js
+     │   ├── orders.js
+     │   ├── reservaciones.js
+     │   └── cortes.js
+     └── controllers/
+         ├── authController.js
+         ├── userController.js
+         ├── localController.js
+         ├── mesaController.js
+         ├── categoriaController.js
+         ├── productoController.js
+         ├── orderController.js
+         ├── reservaController.js
+         └── corteController.js
+
+================================================================================
+  FIN DEL DOCUMENTO
+================================================================================
