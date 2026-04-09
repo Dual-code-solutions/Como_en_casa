@@ -12,7 +12,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <button className="navbar-brand-compact" onClick={() => navigate('/')}>
-        <div className="brand-circle">CEC</div>
+        <img src="/src/assets/logo.png" alt="Como en Casa" className="brand-logo" />
         <span className="brand-text">Sucursal Timucuy</span>
       </button>
 

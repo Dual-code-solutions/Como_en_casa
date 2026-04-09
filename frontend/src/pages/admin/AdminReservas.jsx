@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../api/supabaseClient';
-import { Calendar, Users, Clock, CheckCircle, XCircle, DollarSign, MessageSquare, LayoutDashboard, Calendar as CalendarIcon, Settings, User } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, XCircle, DollarSign, MessageSquare, LayoutDashboard, Calendar as CalendarIcon, Settings, User, Utensils } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './AdminReservas.css';
 import './AdminDashboard.css'; // Reusing layout CSS
@@ -57,6 +57,10 @@ const AdminReservas = () => {
           <button className="sidebar-nav-item active">
             <CalendarIcon size={20} />
             Reservaciones
+          </button>
+          <button className="sidebar-nav-item" onClick={() => navigate('/admin/menu')}>
+            <Utensils size={20} />
+            Gestión de Menú
           </button>
           <button className="sidebar-nav-item">
             <Settings size={20} />

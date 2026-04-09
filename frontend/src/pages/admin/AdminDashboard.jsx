@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Play, CheckCircle, Package, LayoutDashboard, Settings, User, Calendar as CalendarIcon } from 'lucide-react';
+import { Bell, Play, CheckCircle, Package, LayoutDashboard, Settings, User, Calendar as CalendarIcon, Utensils } from 'lucide-react';
 import { supabase } from '../../api/supabaseClient';
 import './AdminDashboard.css';
 
@@ -93,6 +93,10 @@ const AdminDashboard = () => {
           <button className="sidebar-nav-item" onClick={() => navigate('/admin/reservas')}>
             <CalendarIcon size={20} />
             Reservaciones
+          </button>
+          <button className="sidebar-nav-item" onClick={() => navigate('/admin/menu')}>
+            <Utensils size={20} />
+            Gestión de Menú
           </button>
           <button className="sidebar-nav-item">
             <Settings size={20} />

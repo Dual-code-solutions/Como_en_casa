@@ -1,0 +1,631 @@
+/* AdminMenu.css — Estilo Calidez Casera */
+
+/* ─── Layout ─── */
+.menu-dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #FAFAFA;
+}
+
+.menu-board {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── Header ─── */
+.header-actions-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-new-product {
+  background-color: #C0622A;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(192, 98, 42, 0.25);
+}
+
+.btn-new-product:hover {
+  background-color: #983D10;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(192, 98, 42, 0.35);
+}
+
+/* ─── Category Filter ─── */
+.admin-category-filter {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.admin-cat-btn {
+  background: white;
+  border: 1.5px solid #DDD0C4;
+  padding: 0.45rem 1rem;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #7B4A2A;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.admin-cat-btn.active {
+  background-color: #C0622A;
+  color: white;
+  border-color: #C0622A;
+}
+
+/* ─── Products Grid ─── */
+.admin-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-product-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s;
+  border: 1px solid #EFE8DF;
+}
+
+.admin-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.1);
+}
+
+.admin-product-card.hidden-product {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+}
+
+.product-img-container {
+  height: 160px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.product-img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badge-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.04em;
+}
+
+.badge-visible { background-color: #4CAF50; }
+.badge-hidden  { background-color: #E53935; }
+
+.product-info {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-info-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.4rem;
+}
+
+.product-info-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #3D2B1F;
+}
+
+.product-price {
+  font-weight: 700;
+  color: #4CAF50;
+  font-size: 1.05rem;
+}
+
+.product-info p {
+  color: #8A7060;
+  font-size: 0.82rem;
+  margin: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid #F0E8DF;
+  background-color: #FDFAF7;
+}
+
+.visibility-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #6B4226;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.action-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  color: #888;
+}
+
+.btn-icon.edit:hover  { background: #E3F2FD; color: #1976D2; }
+.btn-icon.delete:hover{ background: #FFEBEE; color: #D32F2F; }
+
+/* ═══════════════════════════════════════════
+   MODAL — ESTILO CALIDEZ CASERA
+   ═══════════════════════════════════════════ */
+
+.modal-overlay-admin {
+  position: fixed;
+  inset: 0;
+  background: rgba(42, 20, 10, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+}
+
+.modal-content-admin {
+  background: #FDF8F3;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(42, 20, 10, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header marrón tipo "Reservas" */
+.modal-header-admin {
+  background: linear-gradient(135deg, #4A2C2A 0%, #6B3A2A 100%);
+  padding: 1.4rem 1.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* Redondear esquinas superiores ya que quitamos overflow:hidden del padre */
+  border-radius: 20px 20px 0 0;
+  flex-shrink: 0;
+}
+
+.modal-header-admin h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #F5CBA7;
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.02em;
+}
+
+.btn-close {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  cursor: pointer;
+  color: #F5CBA7;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-close:hover { background: rgba(255,255,255,0.28); }
+
+/* Body — sin altura fija, crece con el contenido */
+.modal-body-admin {
+  padding: 1.5rem 1.75rem;
+  background: #FDF8F3;
+}
+
+/* ─── Grupos de formulario ─── */
+.form-group {
+  margin-bottom: 1.1rem;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #7B4A2A;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid #DDD0C4;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #3D2B1F;
+  background: #FFFFFF;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: #B9A99A; }
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #C0622A;
+  box-shadow: 0 0 0 3px rgba(192, 98, 42, 0.12);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 85px;
+}
+
+/* Fila de dos columnas */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+/* Checkbox de visibilidad */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: #FFF3E8;
+  border: 1px solid #E8C9A5;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #C0622A;
+  cursor: pointer;
+}
+
+.checkbox-group label {
+  font-size: 0.88rem;
+  color: #5D3A1A;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ─── Zona de subida de imagen ─── */
+.image-upload-zone {
+  width: 100%;
+  height: 150px;
+  border: 2px dashed #D5BFA5;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+  background: #FFF8F2;
+}
+
+.image-upload-zone:hover {
+  border-color: #C0622A;
+  background: #FFF3E8;
+}
+
+.image-upload-zone .image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #C4A898;
+  font-size: 0.82rem;
+}
+
+.placeholder-icon { color: #D5BFA5; }
+
+.btn-change-image {
+  margin-top: 0.4rem;
+  background: none;
+  border: 1px solid #D5BFA5;
+  border-radius: 8px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #7B4A2A;
+  transition: background 0.2s;
+}
+.btn-change-image:hover { background: #F5E8DC; }
+
+/* ─── Sección Ingredientes ─── */
+.ingredientes-section {
+  background: #FFFAF5;
+  border: 1.5px solid #E2C9AE;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.1rem;
+}
+
+.ingredientes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.ingredientes-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5D3A1A;
+  margin: 0;
+}
+
+.btn-add-ing {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #C0622A;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.btn-add-ing:hover {
+  background: #983D10;
+  transform: translateY(-1px);
+}
+
+.ingredientes-empty {
+  color: #C4A898;
+  font-size: 0.82rem;
+  font-style: italic;
+  text-align: center;
+  padding: 0.6rem 0;
+  margin: 0;
+}
+
+.ingredientes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ingrediente-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: white;
+  border: 1px solid #EAD9C8;
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  box-shadow: 0 1px 4px rgba(90, 50, 20, 0.07);
+}
+
+.btn-remove-ing {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.btn-remove-ing:hover { background: #FECACA; }
+
+.ing-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ing-top {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.ing-top .form-group {
+  margin: 0;
+}
+
+.ing-top .form-group label {
+  font-size: 0.67rem;
+  color: #9B7358;
+}
+
+.ing-top input {
+  padding: 0.5rem 0.65rem;
+  border: 1.5px solid #DDD0C4;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  width: 100%;
+  background: #FDFAF7;
+  color: #3D2B1F;
+  box-sizing: border-box;
+}
+
+.ing-top input:focus {
+  outline: none;
+  border-color: #C0622A;
+}
+
+.ing-top input::placeholder { color: #C4A898; }
+
+.ing-checks {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #FFF3E8;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+}
+
+.ing-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #6B4226;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.ing-checks input[type="checkbox"] {
+  accent-color: #C0622A;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* ─── Footer del modal ─── */
+.modal-footer-admin {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid #EAD9C8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #FDF8F3;
+  border-radius: 0 0 20px 20px;
+  flex-shrink: 0;
+}
+
+.btn-secondary {
+  padding: 0.65rem 1.4rem;
+  background: white;
+  border: 1.5px solid #C4A07B;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #5D3A1A;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #F5E8DC;
+  border-color: #C0622A;
+}
+
+.btn-primary {
+  padding: 0.65rem 1.4rem;
+  background: #C0622A;
+  border: none;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 4px 12px rgba(192, 98, 42, 0.3);
+}
+
+.btn-primary:hover {
+  background: #983D10;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}

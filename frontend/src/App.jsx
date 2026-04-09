@@ -7,6 +7,7 @@ import ClientReservations from './pages/client/ClientReservations';
 import LoginAdmin from './pages/admin/LoginAdmin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminReservas from './pages/admin/AdminReservas';
+import AdminMenu from './pages/admin/AdminMenu';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -23,6 +24,11 @@ function App() {
         <Route path="/admin/login" element={<LoginAdmin />} />
 
         {/* Lado del Admin - Blindadas */}
+        <Route path="/admin/menu" element={
+          <ProtectedRoute>
+            <AdminMenu />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/reservas" element={
           <ProtectedRoute>
             <AdminReservas />

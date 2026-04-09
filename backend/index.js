@@ -57,9 +57,11 @@ io.on('connection', (socket) => {
 // Registrar Rutas
 const ordersRoutes = require('./routes/orders')(io);
 const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/productRoutes');
 
 app.use('/api/orders', ordersRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
