@@ -1,36 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Play, CheckCircle, Package, LayoutDashboard, Settings, User, Calendar as CalendarIcon, Utensils } from 'lucide-react';
-import { supabase } from '../../api/supabaseClient';
+import { Bell, Play, CheckCircle, Eye } from 'lucide-react';
+import apiClient from '../../api/apiClient';
+import AdminSidebar from '../../components/admin/AdminSidebar';
+import OrderDetailsModal from '../../components/admin/OrderDetailsModal';
 import './AdminDashboard.css';
 
-// Conexión al servidor de Node.js
-const socket = io('http://localhost:3000');
+const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+const socket = io(WS_URL);
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
-  const navigate = useNavigate();
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const localId = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197"; // Timucuy
 
   useEffect(() => {
     // 0. Cargar pedidos existentes al iniciar
     const fetchInitialOrders = async () => {
-      const { data, error } = await supabase
-        .from('pedidos')
-        .select('*')
-        .eq('id_local', localId)
-        .neq('estado', 'finalizado')
-        .order('created_at', { ascending: false });
-        
-      if (!error && data) {
-        setOrders(data);
+      try {
+        const response = await apiClient.get(`/orders?localId=${localId}`);
+        if (response.data && response.data.data) {
+          const activeOrders = response.data.data.filter(o => o.estado !== 'finalizado');
+          setOrders(activeOrders);
+        }
+      } catch (error) {
+        console.error("Error fetching orders:", error);
       }
     };
     fetchInitialOrders();
 
     // 1. Unirse al "cuarto" privado de la sucursal
-    socket.emit('join_local', localId);
+    socket.emit('join_local', { localId });
 
     // 2. Escuchar nuevos pedidos ("El Despertador")
     socket.on('new_order', (newOrder) => {
@@ -39,10 +40,11 @@ const AdminDashboard = () => {
       
       const fullOrder = {
           id: newOrder.orderId,
-          nombre_cliente: newOrder.customer.name,
+          nombreCliente: newOrder.customer.name,
           estado: 'entrante',
           modalidad: newOrder.deliveryType,
-          numero_mesa: newOrder.customer.table || '-'
+          mesaId: newOrder.customer.table || '-',
+          creadoAt: new Date().toISOString()
       };
 
       setOrders((prev) => [fullOrder, ...prev]);
@@ -51,68 +53,44 @@ const AdminDashboard = () => {
     return () => socket.off('new_order');
   }, []);
 
-  const advanceOrder = async (order) => {
-    let nextState = '';
-    if (order.estado === 'entrante') nextState = 'cocina';
-    else if (order.estado === 'cocina') nextState = 'listo';
-    else if (order.estado === 'listo') nextState = 'finalizado';
-    
-    if (!nextState) return;
-
-    // Actualizar optimísticamente en la UI
-    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, estado: nextState } : o));
-
-    // Persistir en base de datos
-    await supabase
-        .from('pedidos')
-        .update({ estado: nextState })
-        .eq('id', order.id);
+  const handleOrderUpdated = (orderId, nuevoEstado) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, estado: nuevoEstado } : o));
   };
 
-  // Columnas del Kanban
+  const handleViewDetails = (orderId) => {
+    setSelectedOrderId(orderId);
+    setIsModalOpen(true);
+  };
+
   const states = [
-    { id: 'entrante', label: 'Entrantes', className: 'entrante', icon: Bell },
-    { id: 'cocina', label: 'En Cocina', className: 'cocina', icon: Play },
-    { id: 'listo', label: 'Listos', className: 'listo', icon: CheckCircle },
-    { id: 'finalizado', label: 'Entregados', className: 'finalizado', icon: Package },
+    { id: 'entrante', label: 'Entrantes', icon: Bell },
+    { id: 'cocina',   label: 'En Cocina', icon: Play },
+    { id: 'listo',    label: 'Listos',    icon: CheckCircle },
   ];
+
+  // Avance de estado — finalizado va al Historial (se saca del Kanban)
+  const advanceOrder = async (order) => {
+    let nextState = '';
+    if (order.estado === 'cocina')  nextState = 'listo';
+    else if (order.estado === 'listo') nextState = 'finalizado';
+    if (!nextState) return;
+
+    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, estado: nextState } : o));
+    try {
+      await apiClient.patch(`/orders/${order.id}/estado`, { estado: nextState });
+      if (nextState === 'finalizado') {
+        setTimeout(() => {
+          setOrders(prev => prev.filter(o => o.id !== order.id));
+        }, 600);
+      }
+    } catch (e) {
+      console.error('Error actualizando pedido', e);
+    }
+  };
 
   return (
     <div className="admin-layout">
-      {/* Sidebar Overlay for Mobile could be added here later */}
-      <aside className="admin-sidebar">
-        <div className="sidebar-brand">
-          <img src="/src/assets/logo.png" alt="Como en Casa" className="sidebar-logo" />
-          <h2 className="sidebar-brand-name">Como en Casa</h2>
-        </div>
-        <nav className="sidebar-nav">
-          <button className="sidebar-nav-item active">
-            <LayoutDashboard size={20} />
-            Panel Recepción
-          </button>
-          <button className="sidebar-nav-item" onClick={() => navigate('/admin/reservas')}>
-            <CalendarIcon size={20} />
-            Reservaciones
-          </button>
-          <button className="sidebar-nav-item" onClick={() => navigate('/admin/menu')}>
-            <Utensils size={20} />
-            Gestión de Menú
-          </button>
-          <button className="sidebar-nav-item">
-            <Settings size={20} />
-            Ajustes (Pronto)
-          </button>
-        </nav>
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <User size={32} className="user-avatar" />
-            <div className="user-info">
-              <span className="user-name">Admin Timucuy</span>
-              <span className="status-badge-sidebar">En Línea</span>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       <div className="dashboard-main">
         <header className="dashboard-header">
@@ -130,10 +108,10 @@ const AdminDashboard = () => {
 
         <main className="kanban-board">
           {states.map((state) => (
-            <div key={state.id} className={`kanban-col ${state.className}`}>
+            <div key={state.id} className={`kanban-col ${state.id}`}>
               <div className="kanban-col-header">
                 <div className="kanban-header-left">
-                  <state.icon size={22} className="col-icon" />
+                  <state.icon size={20} className="col-icon" />
                   <h2 className="kanban-col-title">{state.label}</h2>
                 </div>
                 <div className="kanban-col-count">
@@ -142,30 +120,64 @@ const AdminDashboard = () => {
               </div>
 
               <div className="kanban-col-content">
-                {orders.filter(o => o.estado === state.id).map((order, idx) => (
+                {orders.filter(o => o.estado === state.id).map((order, idx) => {
+                  const modalidadMap = { local: 'En Local', domicilio: 'Domicilio', pasar_a_recoger: 'Para Llevar' };
+                  const modalidadLabel = modalidadMap[order.modalidad] || order.modalidad;
+                  const timeAgo = order.creadoAt
+                    ? (() => {
+                        const diff = Math.floor((Date.now() - new Date(order.creadoAt)) / 60000);
+                        if (diff < 1) return 'Ahora mismo';
+                        if (diff === 1) return 'Hace 1 min';
+                        if (diff < 60) return `Hace ${diff} min`;
+                        return `Hace ${Math.floor(diff/60)}h`;
+                      })()
+                    : '';
+
+                  return (
                   <div key={order.id} className="order-card" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    {/* Header */}
                     <div className="order-header">
                       <div className="order-id-badge">
-                        #{String(order.id).slice(-4)}
+                        #{order.numOrdenDia ? String(order.numOrdenDia).padStart(3, '0') : String(order.id).slice(-4)}
                       </div>
-                      <span className="order-time">Hace 2 min</span>
+                      {timeAgo && <span className="order-time">{timeAgo}</span>}
                     </div>
+
+                    {/* Body */}
                     <div className="order-body">
-                      <p className="order-customer">{order.nombre_cliente}</p>
+                      <p className="order-customer">{order.nombreCliente}</p>
                       <div className="order-tags">
-                        <span className="tag-modalidad">{order.modalidad}</span>
-                        <span className="tag-mesa">Mesa {order.numero_mesa}</span>
+                        <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
+                        {order.mesaId && order.mesaId !== '-' && (
+                          <span className="tag-mesa">Mesa {order.mesaId}</span>
+                        )}
+                        {order.tiempoEsperaMinutos && (
+                          <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>
+                        )}
                       </div>
+                      {order.total && (
+                        <div className="order-total">${Number(order.total).toFixed(2)}</div>
+                      )}
                     </div>
-                    
+
+                    {/* Footer / Actions */}
                     <div className="order-actions">
-                      <button className="btn-detalle">Ver Detalle</button>
-                      <button className="btn-siguiente" onClick={() => advanceOrder(order)}>
-                        Siguiente
-                      </button>
+                      {state.id === 'entrante' ? (
+                        <button className="btn-siguiente btn-atender" onClick={() => handleViewDetails(order.id)}>
+                          <Eye size={15} /> Atender Pedido
+                        </button>
+                      ) : (
+                        <>
+                          <button className="btn-detalle" onClick={() => handleViewDetails(order.id)}>Ver Detalle</button>
+                          <button className="btn-siguiente" onClick={() => advanceOrder(order)}>
+                            {state.id === 'cocina' ? '✓ Listo' : '📦 Entregar'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {orders.filter(o => o.estado === state.id).length === 0 && (
                   <div className="empty-state">
                     <p>No hay pedidos aquí</p>
@@ -176,6 +188,13 @@ const AdminDashboard = () => {
           ))}
         </main>
       </div>
+
+      <OrderDetailsModal 
+        orderId={selectedOrderId}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onOrderUpdated={handleOrderUpdated}
+      />
     </div>
   );
 };

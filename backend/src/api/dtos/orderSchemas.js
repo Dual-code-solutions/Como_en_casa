@@ -6,9 +6,9 @@ const confirmOrderSchema = z.object({
     .string({ required_error: 'El ID del local es requerido' })
     .uuid('ID de local inválido'),
   deliveryType: z
-    .enum(['local', 'domicilio', 'llevar'], {
+    .enum(['local', 'domicilio', 'pasar_a_recoger'], {
       required_error: 'El tipo de entrega es requerido',
-      invalid_type_error: 'Tipo de entrega inválido. Debe ser: local, domicilio o llevar'
+      invalid_type_error: 'Tipo de entrega inválido. Debe ser: local, domicilio o pasar_a_recoger'
     }),
   total: z
     .number({ required_error: 'El total es requerido' })
@@ -55,10 +55,12 @@ const confirmOrderSchema = z.object({
 
 const updateEstadoSchema = z.object({
   estado: z
-    .enum(['cocina', 'listo', 'finalizado'], {
+    .enum(['cocina', 'listo', 'finalizado', 'cancelado'], {
       required_error: 'El nuevo estado es requerido',
-      invalid_type_error: 'Estado inválido. Debe ser: cocina, listo o finalizado'
-    })
+      invalid_type_error: 'Estado inválido. Debe ser: cocina, listo, finalizado o cancelado'
+    }),
+  tiempoEsperaMinutos: z.number().int().positive().optional().nullable(),
+  motivoCancelacion: z.string().optional().nullable()
 });
 
 module.exports = { confirmOrderSchema, updateEstadoSchema };

@@ -11,6 +11,9 @@ function reservacionRoutes(reservacionController) {
   // #36 POST /api/reservaciones — 🟢 público (formulario web del cliente)
   router.post('/', validate(createReservacionSchema), reservacionController.create);
 
+  // 🟢 público — devuelve los horarios ya ocupados para una fecha dada
+  router.get('/disponibilidad', reservacionController.disponibilidad);
+
   // #37 GET /api/reservaciones — 🔴🟡 (panel admin)
   router.get('/',
     authMiddleware, requireRole('dueño', 'admin'),

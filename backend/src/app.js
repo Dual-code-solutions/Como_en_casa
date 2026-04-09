@@ -221,7 +221,7 @@ function createApp(io) {
   const updateOrderEstadoUC   = new UpdateOrderEstadoUseCase({ orderRepository: orderRepo, mesaRepository: mesaRepo, socketIO: io });
   const createReservacionUC   = new CreateReservacionUseCase({ reservationRepository: reservationRepo, mesaRepository: mesaRepo, socketIO: io });
   const listReservacionesUC   = new ListReservacionesUseCase({ reservationRepository: reservationRepo });
-  const updateReservacionUC   = new UpdateReservacionUseCase({ reservationRepository: reservationRepo });
+  const updateReservacionUC   = new UpdateReservacionUseCase({ reservationRepository: reservationRepo, socketIO: io });
   const generarCorteUC        = new GenerarCorteUseCase({ corteRepository: corteRepo, orderRepository: orderRepo });
   const listCortesUC          = new ListCortesUseCase({ corteRepository: corteRepo });
   const getCorteUC            = new GetCorteUseCase({ corteRepository: corteRepo });

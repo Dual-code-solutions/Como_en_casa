@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { supabase } from '../../api/supabaseClient';
+import apiClient from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { showAlert } from '../../utils/swalCustom';
 import './LoginAdmin.css';
 
 const LoginAdmin = () => {
@@ -12,29 +13,28 @@ const LoginAdmin = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        
-        // Buscamos el usuario en nuestra tabla personalizada
-        const { data, error } = await supabase
-            .from('usuarios')
-            .select('*') // Simplificado para evitar errores de Foreign Key locales()
-            .eq('usuario', email)
-            .eq('password', password)
-            .single();
+        try {
+            const response = await apiClient.post('/auth/login', { 
+                email: email.trim(), 
+                password 
+            });
 
-        if (error) {
-            console.error("Error de Supabase:", error);
-            // Si el error de postgrest no es "No rows found"
-            if (error.code !== 'PGRST116') {
-                alert("Error de base de datos: " + error.message);
-                return;
+            const result = response.data.data;
+            if (response.data.success && result && result.token) {
+                // Guarda la sesión en base a la respuesta del nuevo backend
+                localStorage.setItem('admin_session', JSON.stringify({
+                    token: result.token,
+                    ...result.user
+                }));
+                navigate('/admin');
             }
-        }
-
-        if (data) {
-            localStorage.setItem('admin_session', JSON.stringify(data));
-            navigate('/admin'); // Al tablero que ya hicimos
-        } else {
-            alert("Credenciales incorrectas");
+        } catch (error) {
+            console.error("Error de login:", error);
+            if (error.response && error.response.status === 401) {
+                showAlert('Atención', 'Credenciales incorrectas', 'warning');
+            } else {
+                showAlert('Error', 'Error de conexión con el servidor', 'error');
+            }
         }
     };
 

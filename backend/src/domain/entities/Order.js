@@ -17,12 +17,12 @@ class Order {
   };
 
   // Modalidades de entrega válidas
-  static MODALIDADES = ['local', 'domicilio', 'llevar'];
+  static MODALIDADES = ['local', 'domicilio', 'pasar_a_recoger'];
 
   constructor({ id, localId, mesaId, nombreCliente, telefono,
                 modalidad, direccionEnvio, referenciaUbicacion,
                 items = [], total, estado = 'entrante',
-                numOrdenDia, tiempoEsperaMinutos, creadoAt }) {
+                numOrdenDia, tiempoEsperaMinutos, motivoCancelacion, creadoAt }) {
     this.id                  = id;
     this.localId             = localId;
     this.mesaId              = mesaId || null;
@@ -36,6 +36,7 @@ class Order {
     this.estado              = estado;
     this.numOrdenDia         = numOrdenDia || null;
     this.tiempoEsperaMinutos = tiempoEsperaMinutos || null;
+    this.motivoCancelacion   = motivoCancelacion || null;
     this.creadoAt            = creadoAt || new Date();
   }
 

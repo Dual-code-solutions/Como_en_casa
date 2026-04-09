@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { showAlert } from '../../utils/swalCustom';
 import './LoginPin.css';
 
 const LoginPin = () => {
@@ -20,18 +21,18 @@ const LoginPin = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pin, localId })
             });
-            const data = await response.json();
             
-            if (response.ok && data.token) {
+            if (response.ok) {
+                const data = await response.json();
                 login(data.token, data.user);
                 navigate('/admin');
             } else {
-                alert(data.error || "PIN incorrecto");
-                setPin("");
+                const data = await response.json();
+                showAlert('Atención', data.error || 'PIN incorrecto', 'warning');
             }
         } catch (err) {
-            console.error(err);
-            alert("Error conectándose al servidor");
+            showAlert('Error', 'Error conectándose al servidor', 'error');
+        } finally {
             setPin("");
         }
     };

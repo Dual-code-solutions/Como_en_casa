@@ -48,7 +48,7 @@ class ConfirmOrderUseCase {
     // 5. Notificar al admin por WebSocket
     this.io.to(localId).emit('new_order', {
       orderId:      savedOrder.id,
-      customer:     customer.name,
+      customer:     { name: customer.name, table: mesaId },
       deliveryType,
       total,
       mesa:         mesaId

@@ -13,6 +13,12 @@ function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (process.env.NODE_ENV !== 'production') {
+      req.userId = 'mock-dev';
+      req.userRole = 'dueño'; // Dar permisos amplios en dev sin login
+      req.userLocalId = '02ef18a9-62aa-4fcd-98ee-1134e4aaf197';
+      return next();
+    }
     return res.status(401).json({
       success: false,
       error: 'Token de autenticación requerido'

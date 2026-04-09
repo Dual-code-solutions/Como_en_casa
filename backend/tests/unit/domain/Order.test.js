@@ -67,7 +67,7 @@ describe('Order Entity', () => {
   test('valida modalidad correcta', () => {
     expect(() => Order.validarModalidad('local')).not.toThrow();
     expect(() => Order.validarModalidad('domicilio')).not.toThrow();
-    expect(() => Order.validarModalidad('llevar')).not.toThrow();
+    expect(() => Order.validarModalidad('pasar_a_recoger')).not.toThrow();
   });
 
   test('rechaza modalidad inválida', () => {

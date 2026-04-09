@@ -84,12 +84,20 @@ class SupabaseOrderRepository extends OrderRepository {
     return this._toEntity(savedOrder);
   }
 
-  async updateEstado(id, estado) {
+  async updateEstado({ id, estado, tiempoEsperaMinutos, motivoCancelacion }) {
+    const updatePayload = { estado };
+    if (tiempoEsperaMinutos !== undefined && tiempoEsperaMinutos !== null) {
+      updatePayload.tiempo_espera_minutos = tiempoEsperaMinutos;
+    }
+    if (motivoCancelacion) {
+      updatePayload.motivo_cancelacion = motivoCancelacion;
+    }
+
     const { data, error } = await supabase
       .from('pedidos')
-      .update({ estado })
+      .update(updatePayload)
       .eq('id', id)
-      .select()
+      .select('*, detalle_pedido(*, productos(nombre, precio_base)), mesas(nombre_o_numero)')
       .single();
 
     if (error) throw new Error(error.message);
@@ -122,6 +130,7 @@ class SupabaseOrderRepository extends OrderRepository {
       estado:               row.estado,
       numOrdenDia:          row.num_orden_dia,
       tiempoEsperaMinutos:  row.tiempo_espera_minutos,
+      motivoCancelacion:    row.motivo_cancelacion,
       creadoAt:             row.creado_at
     });
   }

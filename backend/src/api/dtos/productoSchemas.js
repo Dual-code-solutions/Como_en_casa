@@ -39,7 +39,6 @@ const createProductoSchema = z.object({
     .positive('El precio debe ser mayor a 0'),
   imagenUrl: z
     .string()
-    .url('URL de imagen inválida')
     .optional()
     .nullable(),
   disponible: z

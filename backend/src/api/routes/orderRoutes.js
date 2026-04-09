@@ -18,11 +18,8 @@ function orderRoutes(orderController) {
     paginate, orderController.listOrders
   );
 
-  // #34 GET /api/orders/:id — 🔴🟡
-  router.get('/:id',
-    authMiddleware, requireRole('dueño', 'admin'),
-    orderController.getOrder
-  );
+  // #34 GET /api/orders/:id — 🟢 Público (clientes para rastrear) o 🔴🟡 (admin)
+  router.get('/:id', orderController.getOrder);
 
   // #35 PATCH /api/orders/:id/estado — 🔴🟡 (avanzar en el Kanban)
   router.patch('/:id/estado',

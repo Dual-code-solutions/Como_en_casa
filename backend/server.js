@@ -1,4 +1,5 @@
 // server.js
+// Trigger restart again
 // ─────────────────────────────────────────────────────
 // PUNTO DE ENTRADA DEL SERVIDOR
 // ─────────────────────────────────────────────────────
@@ -24,9 +25,10 @@ validateEnv();
 // 2. Crear instancia de Socket.IO
 const PORT = process.env.PORT || 3000;
 
-// Crear un server temporal para poder pasar io a createApp
-const tempApp = require('express')();
-const httpServer = http.createServer(tempApp);
+// Crear un server y app base
+const express = require('express');
+const app = express();
+const httpServer = http.createServer(app);
 
 const io = new SocketServer(httpServer, {
   cors: {
@@ -43,12 +45,9 @@ const io = new SocketServer(httpServer, {
 // 3. Inicializar WebSocket handler
 setupSocket(io);
 
-// 4. Crear la aplicación Express con inyección de io
-const app = createApp(io);
-
-// Reemplazar el handler del httpServer con la app real
-httpServer.removeAllListeners('request');
-httpServer.on('request', app);
+// 4. Crear la aplicación Express con inyección de io y montarla
+const apiApp = createApp(io);
+app.use(apiApp);
 
 // 5. Arrancar el servidor
 httpServer.listen(PORT, () => {

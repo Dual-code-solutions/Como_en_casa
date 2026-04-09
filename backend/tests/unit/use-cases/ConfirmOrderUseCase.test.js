@@ -49,7 +49,7 @@ describe('ConfirmOrderUseCase', () => {
     expect(mockIO.to).toHaveBeenCalledWith('local-1');
     expect(mockIO.emit).toHaveBeenCalledWith('new_order', expect.objectContaining({
       orderId:      'orden-1',
-      customer:     'Juan',
+      customer:     { name: 'Juan', table: 'mesa-1' },
       deliveryType: 'local',
       total:        170
     }));

@@ -7,7 +7,7 @@ class UpdateOrderEstadoUseCase {
     this.io        = socketIO;
   }
 
-  async execute({ orderId, nuevoEstado, userLocalId, userRole }) {
+  async execute({ orderId, nuevoEstado, userLocalId, userRole, tiempoEsperaMinutos, motivoCancelacion }) {
     const order = await this.orderRepo.findById(orderId);
     if (!order) throw new Error('Pedido no encontrado');
 
@@ -17,7 +17,12 @@ class UpdateOrderEstadoUseCase {
     }
 
     // Actualizar estado en BD
-    const updated = await this.orderRepo.updateEstado(orderId, nuevoEstado);
+    const updated = await this.orderRepo.updateEstado({
+      id: orderId,
+      estado: nuevoEstado,
+      tiempoEsperaMinutos,
+      motivoCancelacion
+    });
 
     // Si se finalizó y tenía mesa, verificar si se puede liberar
     if (nuevoEstado === 'finalizado' && order.mesaId) {

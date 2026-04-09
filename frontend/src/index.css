@@ -112,3 +112,70 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* ── SweetAlert2 — Tema Calidez Casera ─────────────────── */
+.swal-custom-popup {
+  font-family: 'Poppins', sans-serif;
+  border-radius: 20px !important;
+  padding: 2rem !important;
+  box-shadow: 0 20px 60px rgba(74, 44, 42, 0.18) !important;
+}
+
+.swal2-title {
+  font-family: 'Playfair Display', serif !important;
+  color: #4A2C2A !important;
+  font-size: 1.45rem !important;
+}
+
+.swal2-html-container {
+  color: #7a6055 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.6 !important;
+}
+
+/* Reutilizamos .btn-primary y .btn-secondary del admin */
+.swal-custom-popup .btn-primary,
+.swal-custom-popup .btn-secondary {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0.65rem 1.6rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.swal-custom-popup .btn-primary {
+  background: linear-gradient(135deg, #8B4513, #D2691E);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(139, 69, 19, 0.35);
+}
+
+.swal-custom-popup .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.45);
+  transform: translateY(-1px);
+}
+
+.swal-custom-popup .btn-secondary {
+  background: #f5f0eb;
+  color: #4A2C2A;
+}
+
+.swal-custom-popup .btn-secondary:hover {
+  background: #ede6dc;
+}
+
+/* Ícono colores */
+.swal2-icon.swal2-warning { color: #D2691E !important; border-color: #D2691E !important; }
+.swal2-icon.swal2-success { color: #10b981 !important; border-color: #10b981 !important; }
+.swal2-icon.swal2-error   { color: #dc2626 !important; border-color: #dc2626 !important; }
+.swal2-icon.swal2-info    { color: #8B4513 !important; border-color: #8B4513 !important; }
+
+.swal2-icon.swal2-warning .swal2-icon-content { color: #D2691E !important; }
+.swal2-icon.swal2-success .swal2-icon-content { color: #10b981 !important; }
+.swal2-icon.swal2-error   .swal2-icon-content { color: #dc2626 !important; }
+.swal2-icon.swal2-info    .swal2-icon-content { color: #8B4513 !important; }
+
+.swal2-icon.swal2-warning .swal2-x-mark-line-right,
+.swal2-icon.swal2-warning .swal2-x-mark-line-left { background: #D2691E !important; }

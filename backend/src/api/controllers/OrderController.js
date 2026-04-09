@@ -58,6 +58,8 @@ class OrderController {
       const order = await this._updateEstado.execute({
         orderId:     req.params.id,
         nuevoEstado: req.body.estado,
+        tiempoEsperaMinutos: req.body.tiempoEsperaMinutos,
+        motivoCancelacion: req.body.motivoCancelacion,
         userRole:    req.userRole,
         userLocalId: req.userLocalId
       });

@@ -58,9 +58,9 @@ function setupSocket(io) {
     });
 
     // ── JOIN: Unirse al room de una sucursal ──
-    // La tablet envía: socket.emit('join_local', { localId: 'uuid-del-local' })
-    // El admin se une automáticamente por su token, o también puede enviar join_local
-    socket.on('join_local', ({ localId }) => {
+    // Acepta tanto string como objeto: socket.emit('join_local', 'uuid') o socket.emit('join_local', { localId: 'uuid' })
+    socket.on('join_local', (payload) => {
+      const localId = typeof payload === 'string' ? payload : payload?.localId;
       if (!localId) return;
 
       socket.join(localId);
@@ -73,6 +73,14 @@ function setupSocket(io) {
         localId,
         message: `Conectado al local: ${localId}`
       });
+    });
+
+    // ── JOIN: Sala de espera individual por reservación ──
+    // El cliente ejecuta: socket.emit('join_reserva', reservaId)
+    socket.on('join_reserva', (reservaId) => {
+      if (!reservaId) return;
+      socket.join(`reserva_${reservaId}`);
+      logger.info(`📡 Socket ${socket.id} se unió al room de reserva: ${reservaId}`);
     });
 
     // ── LEAVE: Salir del room ──

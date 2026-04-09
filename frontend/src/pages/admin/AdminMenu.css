@@ -49,35 +49,97 @@
 /* ─── Category Filter ─── */
 .admin-category-filter {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.55rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  padding: 0.25rem 0.25rem 0.6rem;
+  /* hide scrollbar but keep scrollable */
+  scrollbar-width: none;
 }
+.admin-category-filter::-webkit-scrollbar { display: none; }
 
 .admin-cat-btn {
-  background: white;
-  border: 1.5px solid #DDD0C4;
-  padding: 0.45rem 1rem;
-  border-radius: 20px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #7B4A2A;
+  flex-shrink: 0;
+  background: #fff;
+  border: 2px solid #C4A07B;
+  padding: 0.5rem 1.15rem;
+  border-radius: 22px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6B3A2A;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(100,50,20,0.10);
+  letter-spacing: 0.01em;
+}
+
+.admin-cat-btn:hover {
+  background: #FFF0E0;
+  border-color: #C0622A;
+  color: #C0622A;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(192,98,42,0.18);
 }
 
 .admin-cat-btn.active {
-  background-color: #C0622A;
-  color: white;
-  border-color: #C0622A;
+  background: linear-gradient(135deg, #C0622A, #983D10);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(192,98,42,0.38);
+  transform: translateY(-1px);
 }
+
+/* Chip group: botón + controles inline */
+.cat-chip-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  animation: fadeIn 0.15s ease;
+}
+
+.cat-chip-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cat-chip-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 4px;
+  border-radius: 6px;
+  line-height: 1;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+.cat-chip-btn:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+
+/* Botón "+" al final */
+.cat-btn-add {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 2px dashed #C0622A;
+  color: #C0622A;
+  font-weight: 700;
+}
+.cat-btn-add:hover {
+  background: #fff7ed;
+  border-style: solid;
+}
+
 
 /* ─── Products Grid ─── */
 .admin-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  align-items: start;      /* ← prevents rows from stretching into each other */
+  align-content: start;
 }
 
 .admin-product-card {
@@ -103,15 +165,19 @@
 
 .product-img-container {
   height: 160px;
+  min-height: 160px;       /* ← guarantees height even without a valid image */
   width: 100%;
   overflow: hidden;
   position: relative;
+  flex-shrink: 0;
+  background: #f0e8df;     /* ← fallback colour when image fails */
 }
 
 .product-img-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;          /* ← removes inline gap below image */
 }
 
 .badge-status {
@@ -517,16 +583,28 @@
 
 .ing-top {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.65rem;
+  align-items: flex-end;  /* ← bottoms of inputs line up regardless of label height */
 }
 
 .ing-top .form-group {
   margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Nombre field stretches, price stays fixed */
+.ing-top .ing-nombre { flex: 1; }
+.ing-top .ing-precio  { width: 105px; flex-shrink: 0; }
+
 .ing-top .form-group label {
-  font-size: 0.67rem;
+  font-size: 0.65rem;
   color: #9B7358;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  white-space: nowrap;    /* ← keeps "PRECIO EXTRA ($)" on one line if possible */
 }
 
 .ing-top input {

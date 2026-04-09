@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
-import { supabase } from '../../api/supabaseClient';
-import {
-  LayoutDashboard, Calendar as CalendarIcon, Settings, User,
-  Plus, Edit2, Trash2, X, Utensils, Upload, ImageIcon, Minus
-} from 'lucide-react';
+import apiClient from '../../api/apiClient';
+import { Plus, Edit2, Trash2, X, Upload, ImageIcon, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AdminSidebar from '../../components/admin/AdminSidebar';
+import { showAlert, showConfirm } from '../../utils/swalCustom';
 import './AdminMenu.css';
 import './AdminDashboard.css';
 
-const API = 'http://localhost:3000';
 const LOCAL_ID = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197";
 
 const emptyForm = {
@@ -18,6 +15,7 @@ const emptyForm = {
   precio_base: '',
   id_categoria: '',
   visible_menu: true,
+  disponible: true,
   // imagen: puede ser un File (para subir) o una URL de texto (legacy)
   imagenFile: null,
   imagenPreview: '',
@@ -37,11 +35,58 @@ const AdminMenu = () => {
   const [ingredientes, setIngredientes] = useState([]);
 
   const fileInputRef = useRef(null);
-  const navigate = useNavigate();
+
+  // ── Estado para CRUD de Categorías (#20, #21, #22) ──────────────────────────
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catForm, setCatForm] = useState({ nombre: '', descripcion: '' });
+  const [editingCat, setEditingCat] = useState(null); // null = crear, objeto = editar
+  const [savingCat, setSavingCat] = useState(false);
+
+  const openNewCat = () => { setEditingCat(null); setCatForm({ nombre: '', descripcion: '' }); setCatModalOpen(true); };
+  const openEditCat = (cat) => { setEditingCat(cat); setCatForm({ nombre: cat.nombre, descripcion: cat.descripcion || '' }); setCatModalOpen(true); };
+
+  const handleSaveCat = async (e) => {
+    e.preventDefault();
+    if (!catForm.nombre.trim()) return;
+    setSavingCat(true);
+    try {
+      if (editingCat) {
+        // #21 PATCH /categorias/:id
+        await apiClient.patch(`/locales/${LOCAL_ID}/categorias/${editingCat.id}`, catForm);
+      } else {
+        // #20 POST /categorias
+        await apiClient.post(`/locales/${LOCAL_ID}/categorias`, catForm);
+      }
+      await fetchData();
+      setCatModalOpen(false);
+    } catch (err) {
+      showAlert('Error', 'Error guardando categoría: ' + (err.response?.data?.message || err.message), 'error');
+    } finally {
+      setSavingCat(false);
+    }
+  };
+
+  const handleDeleteCat = async (cat) => {
+    const isConf = await showConfirm(
+      '¿Eliminar categoría?',
+      `¿Eliminar la categoría "${cat.nombre}"? Los productos quedarán sin categoría.`,
+      'Sí, eliminar',
+      'warning'
+    );
+    if (!isConf) return;
+    try {
+      // #22 DELETE /categorias/:id
+      await apiClient.delete(`/locales/${LOCAL_ID}/categorias/${cat.id}`);
+      setActiveCategory('all');
+      await fetchData();
+    } catch (err) {
+      showAlert('Error', 'Error eliminando: ' + (err.response?.data?.message || err.message), 'error');
+    }
+  };
 
   // ── Ingredientes dinámicos ──
   const agregarIngrediente = () => {
-    setIngredientes(prev => [...prev, { nombre: '', precio_extra: 0, es_base: true, permite_doble: true }]);
+    setIngredientes(prev => [...prev, { nombreIngrediente: '', precioExtra: 0, esBase: true, permiteDoble: true }]);
   };
 
   const actualizarIngrediente = (index, campo, valor) => {
@@ -61,31 +106,29 @@ const AdminMenu = () => {
   // ──────────────────────────────
   const fetchData = async () => {
     setLoading(true);
-    const { data: catData } = await supabase
-      .from('categorias')
-      .select('*')
-      .eq('id_local', LOCAL_ID)
-      .order('orden', { ascending: true });
-
-    const { data: prodData } = await supabase
-      .from('productos')
-      .select('*')
-      .eq('id_local', LOCAL_ID)
-      .order('creado_at', { ascending: false });
-
-    if (catData) setCategories(catData);
-    if (prodData) setProducts(prodData);
+    try {
+      const [prodRes, catRes] = await Promise.all([
+        apiClient.get(`/locales/${LOCAL_ID}/productos`),
+        apiClient.get(`/locales/${LOCAL_ID}/categorias`)
+      ]);
+      setProducts(prodRes.data?.data || []);
+      setCategories(catRes.data?.data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const filteredProducts = activeCategory === 'all'
     ? products
-    : products.filter(p => p.id_categoria === activeCategory);
+    : products.filter(p => p.categoriaId === activeCategory);
 
   // ──────────────────────────────
-  // MODAL
+  // MODAL PLATILLO
   // ──────────────────────────────
   const openNew = () => {
     setEditingProduct(null);
@@ -94,27 +137,44 @@ const AdminMenu = () => {
     setIsModalOpen(true);
   };
 
-  const openEdit = async (product) => {
-    setEditingProduct(product);
-    setFormData({
-      nombre: product.nombre,
-      descripcion: product.descripcion,
-      precio_base: product.precio_base,
-      id_categoria: product.id_categoria,
-      visible_menu: product.visible_menu,
-      imagenFile: null,
-      imagenPreview: product.imagen_url || '',
-      imagen_url_existente: product.imagen_url || ''
-    });
-
-    // Cargar ingredientes existentes del producto
-    const { data: ingsData } = await supabase
-      .from('ingredientes_personalizables')
-      .select('*')
-      .eq('id_producto', product.id);
-    setIngredientes(ingsData || []);
-
-    setIsModalOpen(true);
+  const openEdit = async (productInfo) => {
+    setEditingProduct(productInfo);
+    // #24 GET /productos/:id — Obtener detalle completo (incluye ingredientes)
+    try {
+      const res = await apiClient.get(`/locales/${LOCAL_ID}/productos/${productInfo.id}`);
+      const product = res.data.data || productInfo;
+      
+      setFormData({
+        nombre: product.nombre || productInfo.nombre,
+        descripcion: product.descripcion || productInfo.descripcion,
+        precio_base: product.precioBase || productInfo.precioBase,
+        id_categoria: product.categoriaId || productInfo.categoriaId,
+        visible_menu: product.visibleMenu ?? productInfo.visibleMenu ?? true,
+        disponible: product.disponible ?? productInfo.disponible ?? true,
+        imagenFile: null,
+        imagenPreview: product.imagenUrl || productInfo.imagenUrl || '',
+        imagen_url_existente: product.imagenUrl || productInfo.imagenUrl || ''
+      });
+      setIngredientes(product.ingredientes || productInfo.ingredientes || []);
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error('Error fetching product details', err);
+      showAlert('Atención', 'Error cargando detalles del producto. Se usará la info básica.', 'warning');
+      // Fallback
+      setFormData({
+        nombre: productInfo.nombre,
+        descripcion: productInfo.descripcion,
+        precio_base: productInfo.precioBase,
+        id_categoria: productInfo.categoriaId,
+        visible_menu: productInfo.visibleMenu,
+        disponible: productInfo.disponible ?? true,
+        imagenFile: null,
+        imagenPreview: productInfo.imagenUrl || '',
+        imagen_url_existente: productInfo.imagenUrl || ''
+      });
+      setIngredientes(productInfo.ingredientes || []);
+      setIsModalOpen(true);
+    }
   };
 
   const closeModal = () => { setIsModalOpen(false); setSaving(false); };
@@ -137,59 +197,115 @@ const AdminMenu = () => {
   // ──────────────────────────────
   // GUARDAR (CREAR / EDITAR)
   // ──────────────────────────────
+  const toBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!formData.nombre || !formData.precio_base || !formData.id_categoria) {
+      return showAlert('Campos Incompletos', 'Verifique que todos los campos requeridos estén llenos', 'warning');
+    }
     setSaving(true);
 
     try {
-      const data = new FormData();
-      data.append('id_local', LOCAL_ID);
-      data.append('id_categoria', formData.id_categoria);
-      data.append('nombre', formData.nombre);
-      data.append('descripcion', formData.descripcion);
-      data.append('precio_base', formData.precio_base);
-      data.append('visible_menu', formData.visible_menu);
-      data.append('ingredientes', JSON.stringify(ingredientes));
+      const payload = {
+        categoriaId: formData.id_categoria,
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
+        precioBase: Number(formData.precio_base),
+        visibleMenu: Boolean(formData.visible_menu),
+        disponible: Boolean(formData.disponible),
+        imagenUrl: formData.imagen_url_existente
+      };
 
       if (formData.imagenFile) {
-        // El admin subió un archivo nuevo
-        data.append('imagen_url', formData.imagenFile);
-      } else if (editingProduct) {
-        // Editar sin cambiar la imagen → pasar la URL actual
-        data.append('imagen_url_existente', formData.imagen_url_existente);
+        payload.imagenUrl = await toBase64(formData.imagenFile);
       }
 
       if (editingProduct) {
-        await axios.put(`${API}/api/products/${editingProduct.id}/update`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // ACTUALIZACIÓN
+        // 1. Update producto
+        await apiClient.patch(`/locales/${LOCAL_ID}/productos/${editingProduct.id}`, payload);
+
+        // 2. Gestionar ingredientes individualmente (Fase 4 - #29, #30, #31)
+        const originalIngs = editingProduct.ingredientes || [];
+        const finalIngs = ingredientes;
+
+        const deletedIngs = originalIngs.filter(o => !finalIngs.some(f => f.id === o.id));
+        const addedIngs = finalIngs.filter(f => !f.id);
+        const updatedIngs = finalIngs.filter(f => !!f.id);
+
+        await Promise.all([
+          ...deletedIngs.map(ing => 
+            apiClient.delete(`/locales/${LOCAL_ID}/productos/${editingProduct.id}/ingredientes/${ing.id}`)
+          ),
+          ...addedIngs.map(ing => 
+            apiClient.post(`/locales/${LOCAL_ID}/productos/${editingProduct.id}/ingredientes`, {
+              nombreIngrediente: ing.nombreIngrediente,
+              precioExtra: Number(ing.precioExtra) || 0,
+              esBase: Boolean(ing.esBase),
+              permiteDoble: Boolean(ing.permiteDoble)
+            })
+          ),
+          ...updatedIngs.map(ing => 
+            apiClient.patch(`/locales/${LOCAL_ID}/productos/${editingProduct.id}/ingredientes/${ing.id}`, {
+              nombreIngrediente: ing.nombreIngrediente,
+              precioExtra: Number(ing.precioExtra) || 0,
+              esBase: Boolean(ing.esBase),
+              permiteDoble: Boolean(ing.permiteDoble)
+            })
+          )
+        ]);
+
       } else {
-        await axios.post(`${API}/api/products/create`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // CREACIÓN
+        // Pasamos todos los ingredientes en un chunk, el backend insert los insertará juntos
+        payload.ingredientes = ingredientes.map(ing => ({
+          nombreIngrediente: ing.nombreIngrediente,
+          precioExtra: Number(ing.precioExtra) || 0,
+          esBase: Boolean(ing.esBase),
+          permiteDoble: Boolean(ing.permiteDoble)
+        }));
+        await apiClient.post(`/locales/${LOCAL_ID}/productos`, payload);
       }
 
       await fetchData();
       closeModal();
     } catch (err) {
       console.error('Error al guardar:', err.response?.data || err.message);
-      alert('Error: ' + (err.response?.data?.error || err.message));
+      showAlert('Error', 'Error al guardar: Verifique que todos los campos requeridos estén llenos', 'error');
       setSaving(false);
     }
   };
 
   // ──────────────────────────────
-  // TOGGLE VISIBILIDAD
+  // TOGGLE VISIBILIDAD & DISPONIBILIDAD
   // ──────────────────────────────
   const handleToggleVisibility = async (product) => {
-    const newVal = !product.visible_menu;
-    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, visible_menu: newVal } : p));
+    const newVal = !product.visibleMenu;
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, visibleMenu: newVal } : p));
     try {
-      await axios.patch(`${API}/api/products/${product.id}/visibility`, { visible_menu: newVal });
+      // #26 PATCH genérico para visibleMenu
+      await apiClient.patch(`/locales/${LOCAL_ID}/productos/${product.id}`, { visibleMenu: newVal });
     } catch (err) {
       console.error('Error al cambiar visibilidad:', err.message);
-      // Revertir en caso de error
-      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, visible_menu: !newVal } : p));
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, visibleMenu: !newVal } : p));
+    }
+  };
+
+  const handleToggleAvailability = async (product) => {
+    const newVal = product.disponible === false ? true : false;
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, disponible: newVal } : p));
+    try {
+      // #27 PATCH específico para disponibilidad
+      await apiClient.patch(`/locales/${LOCAL_ID}/productos/${product.id}/disponibilidad`, { disponible: newVal });
+    } catch (err) {
+      console.error('Error al cambiar disponibilidad:', err.message);
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, disponible: !newVal } : p));
     }
   };
 
@@ -197,10 +313,17 @@ const AdminMenu = () => {
   // BORRADO LÓGICO
   // ──────────────────────────────
   const handleDelete = async (product) => {
-    if (!window.confirm(`¿Eliminar "${product.nombre}" del menú? El registro quedará oculto pero no se perderán pedidos históricos.`)) return;
+    const isConf = await showConfirm(
+      '¿Dar de baja producto?',
+      `¿Eliminar "${product.nombre}" del menú? El registro quedará oculto pero no se perderán pedidos históricos.`,
+      'Sí, eliminar',
+      'warning'
+    );
+    if (!isConf) return;
     setProducts(prev => prev.filter(p => p.id !== product.id));
     try {
-      await axios.delete(`${API}/api/products/${product.id}`);
+      // #28 DELETE /productos/:id
+      await apiClient.delete(`/locales/${LOCAL_ID}/productos/${product.id}`);
     } catch (err) {
       console.error('Error al eliminar:', err.message);
       await fetchData(); // recargar si falló
@@ -212,36 +335,7 @@ const AdminMenu = () => {
   // ──────────────────────────────
   return (
     <div className="admin-layout">
-      {/* SIDEBAR */}
-      <aside className="admin-sidebar">
-        <div className="sidebar-brand">
-          <img src="/src/assets/logo.png" alt="Como en Casa" className="sidebar-logo" />
-          <h2 className="sidebar-brand-name">Como en Casa</h2>
-        </div>
-        <nav className="sidebar-nav">
-          <button className="sidebar-nav-item" onClick={() => navigate('/admin')}>
-            <LayoutDashboard size={20} /> Panel Recepción
-          </button>
-          <button className="sidebar-nav-item" onClick={() => navigate('/admin/reservas')}>
-            <CalendarIcon size={20} /> Reservaciones
-          </button>
-          <button className="sidebar-nav-item active">
-            <Utensils size={20} /> Gestión de Menú
-          </button>
-          <button className="sidebar-nav-item">
-            <Settings size={20} /> Ajustes (Pronto)
-          </button>
-        </nav>
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <User size={32} className="user-avatar" />
-            <div className="user-info">
-              <span className="user-name">Admin Timucuy</span>
-              <span className="status-badge-sidebar">En Línea</span>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       {/* CONTENIDO */}
       <div className="menu-dashboard-main">
@@ -258,20 +352,34 @@ const AdminMenu = () => {
         </header>
 
         <main className="menu-board">
-          {/* Filtro de categorías */}
+          {/* Filtro de categorías + gestión */}
           <div className="admin-category-filter">
-            <button className={`admin-cat-btn ${activeCategory === 'all' ? 'active' : ''}`} onClick={() => setActiveCategory('all')}>
+            <button
+              className={`admin-cat-btn ${activeCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveCategory('all')}
+            >
               Todos
             </button>
             {categories.map(cat => (
-              <button
-                key={cat.id}
-                className={`admin-cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat.id)}
-              >
-                {cat.nombre}
-              </button>
+              <div key={cat.id} className="cat-chip-group">
+                <button
+                  className={`admin-cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                >
+                  {cat.nombre}
+                </button>
+                {/* controles sólo si el chip está activo */}
+                {activeCategory === cat.id && (
+                  <div className="cat-chip-actions">
+                    <button className="cat-chip-btn edit" title="Editar categoría" onClick={() => openEditCat(cat)}>✏️</button>
+                    <button className="cat-chip-btn del"  title="Eliminar categoría" onClick={() => handleDeleteCat(cat)}>🗑</button>
+                  </div>
+                )}
+              </div>
             ))}
+            <button className="admin-cat-btn cat-btn-add" onClick={openNewCat} title="Nueva categoría">
+              <Plus size={15} /> Categoría
+            </button>
           </div>
 
           {loading ? (
@@ -279,33 +387,48 @@ const AdminMenu = () => {
           ) : (
             <div className="admin-products-grid">
               {filteredProducts.map(product => (
-                <div key={product.id} className={`admin-product-card ${!product.visible_menu ? 'hidden-product' : ''}`}>
+                <div key={product.id} className={`admin-product-card ${!product.visibleMenu ? 'hidden-product' : ''}`}>
                   <div className="product-img-container">
-                    <span className={`badge-status ${product.visible_menu ? 'badge-visible' : 'badge-hidden'}`}>
-                      {product.visible_menu ? 'Visible' : 'Oculto'}
+                    <span className={`badge-status ${product.visibleMenu ? 'badge-visible' : 'badge-hidden'}`}>
+                      {product.visibleMenu ? 'Visible' : 'Oculto'}
                     </span>
                     <img
-                      src={product.imagen_url || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen'}
+                      src={product.imagenUrl || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen'}
                       alt={product.nombre}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen';
+                      }}
                     />
                   </div>
                   <div className="product-info">
                     <div className="product-info-head">
                       <h3>{product.nombre}</h3>
-                      <span className="product-price">${product.precio_base}</span>
+                      <span className="product-price">${product.precioBase}</span>
                     </div>
                     <p>{product.descripcion}</p>
                   </div>
-                  <div className="product-actions">
-                    <label className="visibility-toggle">
-                      <input
-                        type="checkbox"
-                        checked={product.visible_menu}
-                        onChange={() => handleToggleVisibility(product)}
-                      />
-                      {product.visible_menu ? 'Visible en menú' : 'Oculto'}
-                    </label>
-                    <div className="action-btns">
+                  <div className="product-actions" style={{ flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <label className="visibility-toggle" style={{ flexShrink: 0, margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={product.visibleMenu}
+                          onChange={() => handleToggleVisibility(product)}
+                        />
+                        {product.visibleMenu ? 'Visible en menú' : 'Oculto'}
+                      </label>
+                      <label className="visibility-toggle" style={{ flexShrink: 0, margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={product.disponible !== false}
+                          onChange={() => handleToggleAvailability(product)}
+                        />
+                        {product.disponible !== false ? '✅ En Stock' : '❌ Agotado'}
+                      </label>
+                    </div>
+                    <div className="action-btns" style={{ alignSelf: 'flex-end' }}>
                       <button className="btn-icon edit" title="Editar" onClick={() => openEdit(product)}>
                         <Edit2 size={18} />
                       </button>
@@ -326,7 +449,49 @@ const AdminMenu = () => {
         </main>
       </div>
 
-      {/* MODAL */}
+      {/* ── MODAL CATEGORÍAS ─────────────────────────────── */}
+      {catModalOpen && (
+        <div className="modal-overlay-admin" onClick={() => setCatModalOpen(false)}>
+          <div className="modal-content-admin" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header-admin">
+              <h2>{editingCat ? 'Editar Categoría' : 'Nueva Categoría'}</h2>
+              <button className="btn-close" onClick={() => setCatModalOpen(false)}><X size={22} /></button>
+            </div>
+            <form onSubmit={handleSaveCat}>
+              <div className="modal-body-admin">
+                <div className="form-group">
+                  <label>Nombre *</label>
+                  <input
+                    type="text"
+                    value={catForm.nombre}
+                    onChange={e => setCatForm(p => ({ ...p, nombre: e.target.value }))}
+                    placeholder="Ej: Entradas, Postres..."
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Descripción (opcional)</label>
+                  <input
+                    type="text"
+                    value={catForm.descripcion}
+                    onChange={e => setCatForm(p => ({ ...p, descripcion: e.target.value }))}
+                    placeholder="Breve descripción de la categoría"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer-admin">
+                <button type="button" className="btn-secondary" onClick={() => setCatModalOpen(false)}>Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={savingCat}>
+                  {savingCat ? 'Guardando...' : (editingCat ? 'Actualizar' : 'Crear Categoría')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PLATILLO */}
       {isModalOpen && (
         <div className="modal-overlay-admin">
           <div className="modal-content-admin">
@@ -424,24 +589,24 @@ const AdminMenu = () => {
 
                           <div className="ing-fields">
                             <div className="ing-top">
-                              <div className="form-group" style={{ margin: 0, flex: 2 }}>
+                              <div className="form-group ing-nombre">
                                 <label>Nombre</label>
                                 <input
                                   type="text"
                                   placeholder="Ej: Queso Extra"
-                                  value={ing.nombre}
-                                  onChange={e => actualizarIngrediente(index, 'nombre', e.target.value)}
+                                  value={ing.nombreIngrediente || ing.nombre}
+                                  onChange={e => actualizarIngrediente(index, 'nombreIngrediente', e.target.value)}
                                   required
                                 />
                               </div>
-                              <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                              <div className="form-group ing-precio">
                                 <label>Precio Extra ($)</label>
                                 <input
                                   type="number"
                                   min="0"
                                   step="0.50"
-                                  value={ing.precio_extra}
-                                  onChange={e => actualizarIngrediente(index, 'precio_extra', e.target.value)}
+                                  value={ing.precioExtra ?? ing.precio_extra ?? 0}
+                                  onChange={e => actualizarIngrediente(index, 'precioExtra', parseFloat(e.target.value) || 0)}
                                 />
                               </div>
                             </div>
@@ -449,16 +614,16 @@ const AdminMenu = () => {
                               <label>
                                 <input
                                   type="checkbox"
-                                  checked={ing.es_base}
-                                  onChange={e => actualizarIngrediente(index, 'es_base', e.target.checked)}
+                                  checked={ing.esBase ?? ing.es_base}
+                                  onChange={e => actualizarIngrediente(index, 'esBase', e.target.checked)}
                                 />
                                 Ya viene incluido
                               </label>
                               <label>
                                 <input
                                   type="checkbox"
-                                  checked={ing.permite_doble}
-                                  onChange={e => actualizarIngrediente(index, 'permite_doble', e.target.checked)}
+                                  checked={ing.permiteDoble ?? ing.permite_doble}
+                                  onChange={e => actualizarIngrediente(index, 'permiteDoble', e.target.checked)}
                                 />
                                 Permite porción doble
                               </label>

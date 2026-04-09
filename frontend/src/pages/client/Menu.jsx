@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../api/supabaseClient';
+import apiClient from '../../api/apiClient';
 import CustomizationModal from '../../components/client/CustomizationModal';
 import Navbar from '../../components/client/Navbar';
 import { useCart } from '../../store/useCart';
@@ -27,29 +27,26 @@ const Menu = () => {
 
   useEffect(() => {
     const fetchMenu = async () => {
-      const { data: catData } = await supabase
-        .from('categorias')
-        .select('*')
-        .eq('id_local', LOCAL_ID)
-        .order('orden', { ascending: true });
-
-      const { data: prodData } = await supabase
-        .from('productos')
-        .select('*, ingredientes_personalizables(*)')
-        .eq('id_local', LOCAL_ID)
-        .eq('visible_menu', true);
-
-      if (catData) {
-        setCategories(catData);
-        setActiveCategory(catData[0]?.id || null);
+      try {
+        const catRes = await apiClient.get(`/locales/${LOCAL_ID}/categorias`);
+        const prodRes = await apiClient.get(`/locales/${LOCAL_ID}/productos?visible=true`);
+        
+        if (catRes.data && catRes.data.data) {
+          setCategories(catRes.data.data);
+          setActiveCategory(catRes.data.data[0]?.id || null);
+        }
+        if (prodRes.data && prodRes.data.data) {
+          setProducts(prodRes.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching menu:", error);
       }
-      if (prodData) setProducts(prodData);
     };
     fetchMenu();
   }, []);
 
   const filteredProducts = activeCategory
-    ? products.filter(p => p.id_categoria === activeCategory)
+    ? products.filter(p => p.categoriaId === activeCategory)
     : products;
 
   const activeCategoryName = categories.find(c => c.id === activeCategory)?.nombre || 'Platillos';
@@ -98,7 +95,7 @@ const Menu = () => {
             <div key={product.id} className="card-pergamino" onClick={() => setSelectedProduct(product)}>
               <div className="product-image-container">
                 <img
-                  src={product.imagen_url || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Platillo'}
+                  src={product.imagenUrl || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Platillo'}
                   alt={product.nombre}
                   className="product-image"
                 />
@@ -108,7 +105,7 @@ const Menu = () => {
                 <div className="product-info-top">
                   <div className="product-info-header">
                     <h3 className="product-name">{product.nombre}</h3>
-                    <span className="product-price">${product.precio_base}</span>
+                    <span className="product-price">${product.precioBase}</span>
                   </div>
                   <p className="product-desc">{product.descripcion}</p>
                 </div>

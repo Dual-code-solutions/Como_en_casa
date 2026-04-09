@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../store/useCart';
 import { User, Phone, Utensils, ShoppingBag, Truck } from 'lucide-react';
 import Navbar from '../../components/client/Navbar';
+import apiClient from '../../api/apiClient';
+import { showAlert } from '../../utils/swalCustom';
 import './Checkout.css';
 
 const LOCAL_ID = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197";
@@ -19,30 +21,80 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [deliveryType, setDeliveryType] = useState('local');
   const [sending, setSending] = useState(false);
+  const [mesas, setMesas] = useState([]);
   const [formData, setFormData] = useState({
     name: '', phone: '', table: '', address: '', landmark: ''
   });
 
+  React.useEffect(() => {
+    const fetchMesas = async () => {
+      try {
+        const response = await apiClient.get(`/locales/${LOCAL_ID}/mesas`);
+        if (response.data && response.data.data) {
+          setMesas(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching mesas", err);
+      }
+    };
+    fetchMesas();
+  }, []);
+
   const handleConfirmOrder = async () => {
-    if (!formData.name.trim()) return alert("Por favor, ingresa tu nombre.");
-    if (cart.length === 0) return alert("Tu carrito está vacío.");
+    if (!formData.name.trim()) return showAlert('Atención', 'Por favor, ingresa tu nombre.', 'warning');
+    if (cart.length === 0) return showAlert('Atención', 'Tu carrito está vacío.', 'warning');
 
     setSending(true);
     try {
-      const response = await fetch('http://localhost:3000/api/orders/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer: formData, cart, total, deliveryType, localId: LOCAL_ID })
-      });
+      const payload = {
+        localId: LOCAL_ID,
+        deliveryType,
+        total,
+        customer: {
+          name: formData.name,
+          phone: formData.phone,
+          table: deliveryType === 'local' && formData.table ? formData.table : null,
+          address: deliveryType === 'domicilio' ? formData.address : null,
+          landmark: deliveryType === 'domicilio' ? formData.landmark : null
+        },
+        cart: cart.map(item => {
+          // Convertir modsReadable {Queso: 'extra', Cebolla: 'quitar'} a array [{action, name, precioExtra}]
+          const personalizacion = item.modsReadable
+            ? Object.entries(item.modsReadable)
+                .filter(([, action]) => action !== 'normal')
+                .map(([name, action]) => {
+                  const ing = item.ingredientes?.find(i => i.nombreIngrediente === name);
+                  return {
+                    name,
+                    action,
+                    precioExtra: action === 'extra' ? (parseFloat(ing?.precioExtra) || 0) : 0
+                  };
+                })
+            : [];
+          return {
+            id: item.id,
+            quantity: item.quantity,
+            subtotal: item.subtotal,   // ya incluye el precio extra calculado en el modal
+            mods: personalizacion
+          };
+        })
 
-      if (!response.ok) throw new Error("Error en el servidor");
+      };
 
-      alert("¡Pedido Confirmado! 🎉 Tu orden ya está en la cocina.");
+      const res = await apiClient.post('/orders/confirm', payload);
+
+      // Limpiamos carrito local y enviamos a la sala de espera
       clearCart();
-      navigate('/');
+      const orderId = res.data.data.orderId;
+      navigate(`/status/${orderId}`);
     } catch (err) {
       console.error(err);
-      alert("Hubo un error al enviar tu pedido. Intenta de nuevo.");
+      const errorData = err.response?.data;
+      if (errorData && errorData.errors) {
+        showAlert('Atención', errorData.errors.map(e => e.message || e.msg).join('\n'), 'warning');
+      } else {
+        showAlert('Error', 'Hubo un error al enviar tu pedido. Intenta de nuevo.', 'error');
+      }
     } finally {
       setSending(false);
     }
@@ -103,8 +155,8 @@ const Checkout = () => {
               <div className="delivery-modes-grid">
                 {[
                   { id: 'local', label: 'En el local', icon: Utensils },
-                  { id: 'pickup', label: 'Para llevar', icon: ShoppingBag },
-                  { id: 'delivery', label: 'A domicilio', icon: Truck }
+                  { id: 'pasar_a_recoger', label: 'Para llevar', icon: ShoppingBag },
+                  { id: 'domicilio', label: 'A domicilio', icon: Truck }
                 ].map((mode) => (
                   <button key={mode.id}
                     onClick={() => setDeliveryType(mode.id)}
@@ -120,15 +172,23 @@ const Checkout = () => {
             {deliveryType === 'local' && (
               <div className="conditional-field">
                 <label className="form-label">Número de Mesa</label>
-                <input type="number" placeholder="Ej: 5"
+                <select
                   className="input-standalone"
                   value={formData.table}
-                  onChange={(e) => setFormData({...formData, table: e.target.value})} />
+                  onChange={(e) => setFormData({...formData, table: e.target.value})}
+                >
+                  <option value="">Selecciona tu mesa...</option>
+                  {mesas.map(mesa => (
+                    <option key={mesa.id} value={mesa.id}>
+                      {mesa.nombre_o_numero} (Capacidad: {mesa.capacidad})
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 
             {/* Campo condicional: Domicilio */}
-            {deliveryType === 'delivery' && (
+            {deliveryType === 'domicilio' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div className="form-field">
                   <label className="form-label">Ubicación</label>
