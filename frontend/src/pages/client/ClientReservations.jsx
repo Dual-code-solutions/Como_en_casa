@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
 import { io } from 'socket.io-client';
-import { Calendar, Clock, Users, Phone, User as UserIcon, MessageSquare, CheckCircle, Loader } from 'lucide-react';
+import { Calendar, Clock, Users, Phone, User as UserIcon, MessageSquare, CheckCircle, Loader, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/client/Navbar';
 import { showAlert } from '../../utils/swalCustom';
+import { QRCodeSVG } from 'qrcode.react';
 import './ClientReservations.css';
 
 const LOCAL_ID = '02ef18a9-62aa-4fcd-98ee-1134e4aaf197';
@@ -15,6 +16,8 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
    ───────────────────────────────────────────────────────── */
 const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
   const [estadoReserva, setEstadoReserva] = useState('pendiente'); // 'pendiente' | 'aceptada' | 'cancelada'
+  const [downloading, setDownloading] = useState(false);
+  const ticketRef = useRef(null);
 
   useEffect(() => {
     if (!reservaId) return;
@@ -32,6 +35,52 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
 
     return () => socket.disconnect();
   }, [reservaId]);
+
+  const downloadTicket = async () => {
+    if (!ticketRef.current) return;
+    setDownloading(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF }       = await import('jspdf');
+
+      // Mostrar el ticket oculto momentáneamente para capturarlo
+      ticketRef.current.style.display = 'block';
+      await new Promise(r => setTimeout(r, 120)); // esperar render
+
+      const canvas = await html2canvas(ticketRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      ticketRef.current.style.display = 'none';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [90, 160] });
+      pdf.addImage(imgData, 'PNG', 0, 0, 90, 160);
+      pdf.save(`ticket-reserva-${formData.nombre_cliente.replace(/\s+/g, '-')}.pdf`);
+    } catch (err) {
+      console.error('Error al generar ticket:', err);
+      showAlert('Error', 'No se pudo generar el ticket. Intenta de nuevo.', 'error');
+    }
+    setDownloading(false);
+  };
+
+  // Formato legible de fecha
+  const fechaFormateada = formData.fecha_reserva
+    ? new Date(formData.fecha_reserva + 'T12:00:00').toLocaleDateString('es-MX', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      })
+    : '';
+
+  const qrData = JSON.stringify({
+    restaurante: 'Como en Casa - Sucursal Timucuy',
+    reserva: reservaId || 'pendiente',
+    nombre: formData.nombre_cliente,
+    fecha: formData.fecha_reserva,
+    hora: formData.hora_reserva,
+    personas: formData.num_personas
+  });
 
   const isConfirmed = estadoReserva === 'aceptada';
   const isCancelled = estadoReserva === 'cancelada';
@@ -104,9 +153,82 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
             )}
           </div>
 
+          {isConfirmed && (
+            <button
+              onClick={downloadTicket}
+              disabled={downloading}
+              className="btn-download-ticket"
+            >
+              <Download size={16} />
+              {downloading ? 'Generando PDF...' : 'Descargar Ticket'}
+            </button>
+          )}
+
           <button onClick={onBack} className="btn-back-menu">
             Volver al Menú
           </button>
+        </div>
+      </div>
+
+      {/* ── Ticket imprimible OCULTO (solo para html2canvas) ── */}
+      <div ref={ticketRef} style={{ display: 'none' }}>
+        <div style={{
+          width: '340px', background: '#fff', fontFamily: "'Georgia', serif",
+          borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        }}>
+          {/* Header */}
+          <div style={{ background: 'linear-gradient(135deg, #6B2D0E 0%, #A0522D 100%)', padding: '20px 24px', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#F5DEB3', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase' }}>Restaurante</p>
+            <h2 style={{ margin: '4px 0 2px', color: '#fff', fontSize: '22px', fontWeight: 'bold' }}>Como en Casa</h2>
+            <p style={{ margin: 0, color: '#F5DEB3', fontSize: '11px', letterSpacing: '2px' }}>Sucursal Timucuy</p>
+          </div>
+
+          {/* Status badge */}
+          <div style={{ background: '#2d7a2d', padding: '8px 24px', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>✓ RESERVA CONFIRMADA</p>
+          </div>
+
+          {/* Details */}
+          <div style={{ padding: '20px 24px' }}>
+            {[
+              { label: 'Nombre', value: formData.nombre_cliente },
+              { label: 'Fecha', value: fechaFormateada },
+              { label: 'Hora', value: `${formData.hora_reserva} hrs` },
+              { label: 'Personas', value: `${formData.num_personas} persona${formData.num_personas > 1 ? 's' : ''}` },
+              ...(formData.notas_adicionales ? [{ label: 'Notas', value: formData.notas_adicionales }] : [])
+            ].map(({ label, value }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ece8' }}>
+                <span style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'sans-serif' }}>{label}</span>
+                <span style={{ color: '#3a1f0e', fontSize: '13px', fontWeight: '600', fontFamily: 'sans-serif', maxWidth: '180px', textAlign: 'right' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Anticipo notice */}
+          <div style={{ background: '#fdf6f0', margin: '0 16px', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
+            <p style={{ margin: 0, fontSize: '11px', color: '#8B4513', fontFamily: 'sans-serif', textAlign: 'center' }}>
+              💰 Anticipo requerido: <strong>$250.00 MXN</strong><br/>
+              Se descontará de tu cuenta final
+            </p>
+          </div>
+
+          {/* QR Code */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 24px 16px' }}>
+            <p style={{ margin: '0 0 8px', fontSize: '10px', color: '#aaa', fontFamily: 'sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>Escanea para verificar</p>
+            <div style={{ padding: '8px', border: '1px solid #e8e0d8', borderRadius: '8px', background: '#fff' }}>
+              <QRCodeSVG value={qrData} size={90} fgColor="#6B2D0E" />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{ background: '#f9f5f1', padding: '12px 24px', textAlign: 'center', borderTop: '1px dashed #ddd' }}>
+            <p style={{ margin: 0, fontSize: '10px', color: '#999', fontFamily: 'sans-serif' }}>
+              Presenta este ticket al llegar al restaurante
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: '9px', color: '#bbb', fontFamily: 'sans-serif' }}>
+              ID: {reservaId ? reservaId.slice(0, 8).toUpperCase() : 'PENDIENTE'}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -185,7 +307,7 @@ const ClientReservations = () => {
     setLoading(true);
 
     try {
-      await apiClient.post('/reservaciones', {
+      const res = await apiClient.post('/reservaciones', {
         localId: LOCAL_ID,
         nombreCliente: formData.nombre_cliente,
         telefono: formData.telefono,

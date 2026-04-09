@@ -31,8 +31,8 @@ class SupabaseOrderRepository extends OrderRepository {
     if (mesaId) query = query.eq('id_mesa', mesaId);
     if (fecha) {
       query = query
-        .gte('creado_at', `${fecha}T00:00:00`)
-        .lte('creado_at', `${fecha}T23:59:59`);
+        .gte('creado_at', `${fecha}T00:00:00-06:00`)
+        .lte('creado_at', `${fecha}T23:59:59-06:00`);
     }
 
     const { data, error, count } = await query;

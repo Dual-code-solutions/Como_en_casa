@@ -46,186 +46,90 @@
   box-shadow: 0 6px 16px rgba(192, 98, 42, 0.35);
 }
 
-/* ─── Category Filter ─── */
-.admin-category-filter {
-  display: flex;
-  gap: 0.55rem;
-  overflow-x: auto;
-  padding: 0.25rem 0.25rem 0.6rem;
-  /* hide scrollbar but keep scrollable */
-  scrollbar-width: none;
-}
-.admin-category-filter::-webkit-scrollbar { display: none; }
+/* Tabs moved to global AdminDashboard.css */
 
-.admin-cat-btn {
-  flex-shrink: 0;
-  background: #fff;
-  border: 2px solid #C4A07B;
-  padding: 0.5rem 1.15rem;
-  border-radius: 22px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #6B3A2A;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.18s ease;
-  box-shadow: 0 2px 6px rgba(100,50,20,0.10);
-  letter-spacing: 0.01em;
-}
-
-.admin-cat-btn:hover {
-  background: #FFF0E0;
-  border-color: #C0622A;
-  color: #C0622A;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(192,98,42,0.18);
-}
-
-.admin-cat-btn.active {
-  background: linear-gradient(135deg, #C0622A, #983D10);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(192,98,42,0.38);
-  transform: translateY(-1px);
-}
-
-/* Chip group: botón + controles inline */
-.cat-chip-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  animation: fadeIn 0.15s ease;
-}
-
-.cat-chip-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.cat-chip-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 3px 4px;
-  border-radius: 6px;
-  line-height: 1;
-  opacity: 0.75;
-  transition: opacity 0.15s, background 0.15s;
-}
-.cat-chip-btn:hover { opacity: 1; background: rgba(0,0,0,0.06); }
-
-/* Botón "+" al final */
-.cat-btn-add {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: #fff;
-  border: 2px dashed #C0622A;
-  color: #C0622A;
-  font-weight: 700;
-}
-.cat-btn-add:hover {
-  background: #fff7ed;
-  border-style: solid;
-}
-
-
-/* ─── Products Grid ─── */
-.admin-products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  align-items: start;      /* ← prevents rows from stretching into each other */
-  align-content: start;
-}
-
-.admin-product-card {
+/* ─── Admin Products Table ─── */
+.table-container {
   background: white;
-  border-radius: 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(74, 44, 42, 0.05);
+  overflow-x: auto;
+  border: 1px solid #F0E8DF;
+}
+
+.admin-menu-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.admin-menu-table th {
+  background: #FDFAF7;
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9B7358;
+  border-bottom: 2px solid #EFE8DF;
+  font-weight: 700;
+}
+
+.admin-menu-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #F5EAE0;
+  vertical-align: middle;
+}
+
+.menu-table-row {
+  transition: background 0.2s;
+}
+
+.menu-table-row:hover {
+  background: #FFFAF5;
+}
+
+.menu-table-row.row-hidden {
+  opacity: 0.6;
+  background: #FAFAFA;
+}
+
+/* Columns */
+.th-img { width: 90px; }
+.th-info { width: auto; }
+.th-price { width: 120px; }
+.th-status { width: 150px; }
+.th-actions { width: 110px; text-align: center; }
+
+/* Image Cell */
+.table-img-wrapper {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s;
+  background: #f0e8df;
   border: 1px solid #EFE8DF;
 }
 
-.admin-product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.1);
-}
-
-.admin-product-card.hidden-product {
-  opacity: 0.6;
-  filter: grayscale(0.5);
-}
-
-.product-img-container {
-  height: 160px;
-  min-height: 160px;       /* ← guarantees height even without a valid image */
-  width: 100%;
-  overflow: hidden;
-  position: relative;
-  flex-shrink: 0;
-  background: #f0e8df;     /* ← fallback colour when image fails */
-}
-
-.product-img-container img {
+.table-img-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;          /* ← removes inline gap below image */
 }
 
-.badge-status {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: white;
-  letter-spacing: 0.04em;
-}
-
-.badge-visible { background-color: #4CAF50; }
-.badge-hidden  { background-color: #E53935; }
-
-.product-info {
-  padding: 1rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.product-info-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.4rem;
-}
-
-.product-info-head h3 {
-  margin: 0;
-  font-size: 1.05rem;
+/* Info Cell */
+.table-product-name {
+  margin: 0 0 0.3rem 0;
+  font-size: 1rem;
   color: #3D2B1F;
+  font-weight: 600;
 }
 
-.product-price {
-  font-weight: 700;
-  color: #4CAF50;
-  font-size: 1.05rem;
-}
-
-.product-info p {
-  color: #8A7060;
-  font-size: 0.82rem;
+.table-product-desc {
   margin: 0;
-  flex: 1;
+  font-size: 0.8rem;
+  color: #8A7060;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -233,45 +137,97 @@
   overflow: hidden;
 }
 
-.product-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.85rem 1rem;
-  border-top: 1px solid #F0E8DF;
-  background-color: #FDFAF7;
+/* Price Cell */
+.price-tag {
+  font-weight: 700;
+  color: #4CAF50;
+  font-size: 0.95rem;
+  background: #E8F5E9;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
 }
 
-.visibility-toggle {
+/* Status / Toggle Controls */
+.toggle-wrapper {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  color: #6B4226;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.action-btns {
-  display: flex;
+  flex-direction: column;
   gap: 0.4rem;
 }
 
-.btn-icon {
-  background: none;
-  border: none;
+.status-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.text-green { color: #2E7D32; }
+.text-red { color: #D32F2F; }
+.text-blue { color: #1565C0; }
+.text-gray { color: #757575; }
+
+/* Cool Switch CSS */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
   cursor: pointer;
-  padding: 0.4rem;
-  border-radius: 6px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+}
+.switch input:checked + .slider {
+  background-color: #C0622A;
+}
+.switch input:checked + .slider:before {
+  transform: translateX(16px);
+}
+.slider.round {
+  border-radius: 22px;
+}
+.slider.round:before {
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Actions Cell */
+.action-btns-table {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon-table {
+  background: #FDF8F3;
+  border: 1px solid #EFE8DF;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.2s;
   color: #888;
 }
 
-.btn-icon.edit:hover  { background: #E3F2FD; color: #1976D2; }
-.btn-icon.delete:hover{ background: #FFEBEE; color: #D32F2F; }
+.btn-icon-table.edit:hover { background: #E3F2FD; color: #1976D2; border-color: #BBDEFB; }
+.btn-icon-table.delete:hover { background: #FFEBEE; color: #D32F2F; border-color: #FFCDD2; }
 
 /* ═══════════════════════════════════════════
    MODAL — ESTILO CALIDEZ CASERA

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Search, ChevronDown, ChevronUp, MapPin, Clock, ShoppingBag, TrendingUp, Package, FileText, Calculator
+  Search, ChevronDown, ChevronUp, MapPin, Clock, ShoppingBag, TrendingUp, Package, FileText, Calculator, ClipboardList
 } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import AdminSidebar from '../../components/admin/AdminSidebar';
@@ -23,7 +23,14 @@ const Historial = () => {
   const [search, setSearch] = useState('');
   const [filterModal, setFilterModal] = useState('all');
 
-  const hoy = new Date().toISOString().split('T')[0];
+  const getLocalToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const hoy = getLocalToday();
   const [activeTab, setActiveTab] = useState('pedidos'); // 'pedidos' | 'cortes'
   const [cortes, setCortes] = useState([]);
   const [loadingCortes, setLoadingCortes] = useState(false);
@@ -159,15 +166,15 @@ const Historial = () => {
           </div>
         </header>
 
-        <div className="admin-category-filter" style={{ padding: '0 2rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.03)', marginBottom: '1rem' }}>
+        <div className="admin-category-tabs" style={{ padding: '0 2rem 1rem', marginBottom: '1rem' }}>
           <button
-            className={`admin-cat-btn ${activeTab === 'pedidos' ? 'active' : ''}`}
+            className={`cat-tab-btn ${activeTab === 'pedidos' ? 'active' : ''}`}
             onClick={clickTabPedidos}
           >
             {viewingSpecificCorte ? 'Volver a Hoy' : 'Pedidos de Hoy'}
           </button>
           <button
-            className={`admin-cat-btn ${activeTab === 'cortes' ? 'active' : ''}`}
+            className={`cat-tab-btn ${activeTab === 'cortes' ? 'active' : ''}`}
             onClick={() => setActiveTab('cortes')}
           >
             Cortes de Caja

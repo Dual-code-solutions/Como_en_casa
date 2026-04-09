@@ -353,97 +353,126 @@ const AdminMenu = () => {
 
         <main className="menu-board">
           {/* Filtro de categorías + gestión */}
-          <div className="admin-category-filter">
+          <div className="admin-category-tabs">
             <button
-              className={`admin-cat-btn ${activeCategory === 'all' ? 'active' : ''}`}
+              className={`cat-tab-btn ${activeCategory === 'all' ? 'active' : ''}`}
               onClick={() => setActiveCategory('all')}
             >
               Todos
             </button>
             {categories.map(cat => (
-              <div key={cat.id} className="cat-chip-group">
+              <div key={cat.id} className={`cat-tab-group ${activeCategory === cat.id ? 'active-group' : ''}`}>
                 <button
-                  className={`admin-cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                  className={`cat-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
                   onClick={() => setActiveCategory(cat.id)}
                 >
                   {cat.nombre}
                 </button>
                 {/* controles sólo si el chip está activo */}
                 {activeCategory === cat.id && (
-                  <div className="cat-chip-actions">
-                    <button className="cat-chip-btn edit" title="Editar categoría" onClick={() => openEditCat(cat)}>✏️</button>
-                    <button className="cat-chip-btn del"  title="Eliminar categoría" onClick={() => handleDeleteCat(cat)}>🗑</button>
+                  <div className="cat-tab-actions">
+                    <button className="cat-action-btn edit" title="Editar categoría" onClick={() => openEditCat(cat)}><Edit2 size={13}/></button>
+                    <button className="cat-action-btn del"  title="Eliminar categoría" onClick={() => handleDeleteCat(cat)}><Trash2 size={13}/></button>
                   </div>
                 )}
               </div>
             ))}
-            <button className="admin-cat-btn cat-btn-add" onClick={openNewCat} title="Nueva categoría">
-              <Plus size={15} /> Categoría
+            <button className="cat-tab-btn add-new" onClick={openNewCat} title="Nueva categoría">
+              <Plus size={16} /> Categoría
             </button>
           </div>
 
           {loading ? (
-            <div className="loading-state">Cargando inventario...</div>
+            <div className="loading-state">Cargando catálogo...</div>
           ) : (
-            <div className="admin-products-grid">
-              {filteredProducts.map(product => (
-                <div key={product.id} className={`admin-product-card ${!product.visibleMenu ? 'hidden-product' : ''}`}>
-                  <div className="product-img-container">
-                    <span className={`badge-status ${product.visibleMenu ? 'badge-visible' : 'badge-hidden'}`}>
-                      {product.visibleMenu ? 'Visible' : 'Oculto'}
-                    </span>
-                    <img
-                      src={product.imagenUrl || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen'}
-                      alt={product.nombre}
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen';
-                      }}
-                    />
-                  </div>
-                  <div className="product-info">
-                    <div className="product-info-head">
-                      <h3>{product.nombre}</h3>
-                      <span className="product-price">${product.precioBase}</span>
-                    </div>
-                    <p>{product.descripcion}</p>
-                  </div>
-                  <div className="product-actions" style={{ flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <label className="visibility-toggle" style={{ flexShrink: 0, margin: 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={product.visibleMenu}
-                          onChange={() => handleToggleVisibility(product)}
-                        />
-                        {product.visibleMenu ? 'Visible en menú' : 'Oculto'}
-                      </label>
-                      <label className="visibility-toggle" style={{ flexShrink: 0, margin: 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={product.disponible !== false}
-                          onChange={() => handleToggleAvailability(product)}
-                        />
-                        {product.disponible !== false ? '✅ En Stock' : '❌ Agotado'}
-                      </label>
-                    </div>
-                    <div className="action-btns" style={{ alignSelf: 'flex-end' }}>
-                      <button className="btn-icon edit" title="Editar" onClick={() => openEdit(product)}>
-                        <Edit2 size={18} />
-                      </button>
-                      <button className="btn-icon delete" title="Eliminar" onClick={() => handleDelete(product)}>
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {filteredProducts.length === 0 && (
-                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                  <p>No hay productos en esta categoría.</p>
-                </div>
-              )}
+            <div className="table-container">
+              <table className="admin-menu-table">
+                <thead>
+                  <tr>
+                    <th className="th-img">Fotografía</th>
+                    <th className="th-info">Detalles del Platillo</th>
+                    <th className="th-price">Precio</th>
+                    <th className="th-status">Disponibilidad</th>
+                    <th className="th-status">Estado (Menú)</th>
+                    <th className="th-actions">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map(product => (
+                    <tr key={product.id} className={`menu-table-row ${!product.visibleMenu ? 'row-hidden' : ''}`}>
+                      <td className="td-img">
+                        <div className="table-img-wrapper">
+                          <img
+                            src={product.imagenUrl || 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen'}
+                            alt={product.nombre}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://placehold.co/400x200/F5F5DC/8B4513?text=Sin+Imagen';
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="td-info">
+                        <h4 className="table-product-name">{product.nombre}</h4>
+                        <p className="table-product-desc">{product.descripcion}</p>
+                      </td>
+                      <td className="td-price">
+                        <span className="price-tag">${Number(product.precioBase).toFixed(2)}</span>
+                      </td>
+                      <td className="td-status">
+                        <div className="toggle-wrapper">
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={product.disponible !== false}
+                              onChange={() => handleToggleAvailability(product)}
+                            />
+                            <span className="slider round"></span>
+                          </label>
+                          <span className={`status-text ${product.disponible !== false ? 'text-green' : 'text-red'}`}>
+                            {product.disponible !== false ? 'En Stock' : 'Agotado'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="td-status">
+                        <div className="toggle-wrapper">
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={product.visibleMenu}
+                              onChange={() => handleToggleVisibility(product)}
+                            />
+                            <span className="slider round"></span>
+                          </label>
+                          <span className={`status-text ${product.visibleMenu ? 'text-blue' : 'text-gray'}`}>
+                            {product.visibleMenu ? 'Público' : 'Oculto'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="td-actions">
+                        <div className="action-btns-table">
+                          <button className="btn-icon-table edit" title="Editar Platillo" onClick={() => openEdit(product)}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button className="btn-icon-table delete" title="Quitar del Catálogo" onClick={() => handleDelete(product)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredProducts.length === 0 && (
+                    <tr>
+                      <td colSpan="6">
+                        <div className="empty-state">
+                          <p>No hay platillos registrados en esta categoría.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </main>

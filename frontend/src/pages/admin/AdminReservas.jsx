@@ -101,11 +101,11 @@ const AdminReservas = () => {
         </header>
 
         {/* Filtros de estado */}
-        <div className="admin-category-filter" style={{ padding: '0 2rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.03)', marginBottom: '1rem' }}>
+        <div className="admin-category-tabs" style={{ padding: '0 2rem 1rem', marginBottom: '1rem' }}>
           {[['all', 'Todas'], ['pendiente', 'Pendientes'], ['aceptada', 'Confirmadas'], ['cancelada', 'Canceladas']].map(([val, lbl]) => (
             <button
               key={val}
-              className={`admin-cat-btn ${filterEstado === val ? 'active' : ''}`}
+              className={`cat-tab-btn ${filterEstado === val ? 'active' : ''}`}
               onClick={() => setFilterEstado(val)}
             >
               {lbl}

@@ -451,3 +451,39 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   0%, 100% { box-shadow: 0 20px 60px rgba(74, 44, 42, 0.14); }
   50%       { box-shadow: 0 20px 60px rgba(74, 44, 42, 0.25), 0 0 0 4px rgba(210,105,30,0.12); }
 }
+
+/* ── Botón Descargar Ticket ──────────────────────────── */
+.btn-download-ticket {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #1a6b3a 0%, #2d9e55 100%);
+  color: #ffffff;
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.btn-download-ticket:hover:not(:disabled) {
+  background: linear-gradient(135deg, #155c31 0%, #258748 100%);
+  transform: none;
+  filter: brightness(1.08);
+}
+
+.btn-download-ticket:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Separador visual entre botones del ticket */
+.res-ticket-card .btn-download-ticket + .btn-back-menu {
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
