@@ -1,0 +1,655 @@
+═══════════════════════════════════════════════════════════════════
+    REPORTE COMPLETO: LO QUE LE FALTA AL FRONTEND
+    PARA EL CONSUMO CORRECTO DE LAS 41 APIs DEL BACKEND
+    
+    Proyecto: Como en Casa — Restaurante Kiosko/Tablet
+    Generado: 2026-04-09
+    Autor: Backend Team — Dual Code Solutions
+    Versión del reporte: 2.0 (actualizado desde el repo)
+═══════════════════════════════════════════════════════════════════
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║        CREDENCIALES DEL USUARIO DUEÑO (PARA PRUEBAS)            ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║  
+║  Email:     serviciodualcodesolutions.devs@gmail.com              ║
+║  Password:  ServiciosDualcode                                     ║
+║  Rol:       dueño (acceso total a todos los endpoints)            ║
+║                                                                   ║
+║  IMPORTANTE: Este usuario ya está creado en Supabase Auth         ║
+║  y en la tabla "perfiles". Usarlo para probar TODOS los           ║
+║  endpoints protegidos desde Swagger o desde el frontend.          ║
+║                                                                   ║
+║  Cómo usarlo en el frontend:                                      ║
+║  1. En /admin/login poner ese email y contraseña                  ║
+║  2. El backend devuelve un JWT token + datos del usuario          ║
+║  3. Guardar el token en localStorage como "cec_token"             ║
+║  4. Enviarlo en cada petición:                                    ║
+║     Authorization: Bearer <token>                                 ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════════
+INVENTARIO DEL FRONTEND ACTUAL (versión del repositorio)
+═══════════════════════════════════════════════════════════════════
+
+Tech Stack:
+  React 19.2  |  Vite 8  |  Zustand 5  |  React Router 7
+  Socket.IO Client 4.8  |  Lucide React  |  Supabase JS 2.101
+
+Rutas activas en App.jsx:
+  /                  → Menu.jsx (menú público del cliente)
+  /cart              → CartSummary.jsx (carrito de compras)
+  /checkout          → Checkout.jsx (confirmar pedido)
+  /reservas          → ClientReservations.jsx (hacer reserva)
+  /admin/login       → LoginAdmin.jsx (login del administrador)
+  /admin             → AdminDashboard.jsx (Kanban de pedidos) [protegida]
+  /admin/reservas    → AdminReservas.jsx (agenda reservaciones) [protegida]
+
+Páginas STUB vacías (solo dicen "return <div>Nombre</div>"):
+  ❌ Dashboard.jsx        → NO SE USA en App.jsx
+  ❌ Historial.jsx        → NO SE USA en App.jsx
+  ❌ Inventario.jsx       → NO SE USA en App.jsx
+  ❌ Reservas.jsx         → NO SE USA en App.jsx (duplicado de AdminReservas)
+  ❌ Personalizar.jsx     → NO SE USA en App.jsx
+  ❌ StatusPedido.jsx     → NO SE USA en App.jsx
+
+Componentes:
+  ✅ Navbar.jsx             → Barra de navegación del cliente
+  ✅ CartStickyBar.jsx      → Barra flotante del carrito
+  ✅ CustomizationModal.jsx → Modal para personalizar productos
+  ✅ ProtectedRoute.jsx     → Guarda de rutas admin
+  ❌ CartItem.jsx           → Stub vacío
+  ❌ OrderCard.jsx          → Stub vacío
+
+Archivos de estado:
+  ✅ useCart.js (Zustand)   → Manejo del carrito
+  ✅ AuthContext.jsx        → Contexto de autenticación (token JWT)
+  ❌ CartContext.jsx        → Archivo vacío (no se usa, Zustand lo reemplaza)
+
+Archivos de API:
+  ❌ supabaseClient.js      → Cliente DIRECTO a Supabase (DEBE ELIMINARSE)
+  ❌ apiClient.js           → NO EXISTE (DEBE CREARSE para hablar con el backend)
+
+
+═══════════════════════════════════════════════════════════════════
+RESUMEN DEL DIAGNÓSTICO
+═══════════════════════════════════════════════════════════════════
+
+  ✅ Backend API lista:              41 ENDPOINTS VERIFICADOS
+  ❌ Frontend consume del backend:   1 de 41 (solo /orders/confirm)
+  ❌ Frontend habla DIRECTO a DB:    5 archivos bypasean el backend
+  ❌ Pantallas faltantes:            8 pantallas nuevas necesarias
+  ❌ Bugs de compatibilidad:         6 problemas que rompen la conexión
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #1 — EL FRONTEND BYPASEA EL BACKEND (SEGURIDAD CRÍTICA)
+═══════════════════════════════════════════════════════════════════
+
+Descripción:
+  El frontend tiene un archivo src/api/supabaseClient.js que conecta
+  DIRECTAMENTE a Supabase con la ANON_KEY. Esto bypasea toda la lógica
+  de negocio, validación, seguridad y WebSocket del backend.
+
+Archivos que hacen bypass:
+  ┌────────────────────────────┬─────────────────────────────────────┐
+  │ ARCHIVO                    │ QUÉ HACE MAL                       │
+  ├────────────────────────────┼─────────────────────────────────────┤
+  │ LoginAdmin.jsx (línea 17) │ supabase.from('usuarios')          │
+  │                            │ → La tabla 'usuarios' NO EXISTE    │
+  │                            │ → La tabla correcta es 'perfiles'  │
+  │                            │ → Compara passwords en TEXTO PLANO │
+  ├────────────────────────────┼─────────────────────────────────────┤
+  │ Menu.jsx (líneas 30-39)   │ supabase.from('categorias')        │
+  │                            │ supabase.from('productos')         │
+  │                            │ → Funciona pero bypasea el backend │
+  ├────────────────────────────┼─────────────────────────────────────┤
+  │ AdminDashboard.jsx (19-24)│ supabase.from('pedidos').select()  │
+  │                            │ supabase.from('pedidos').update()  │
+  │                            │ → Columna 'created_at' no existe   │
+  │                            │ → La columna correcta es 'creado_at'│
+  ├────────────────────────────┼─────────────────────────────────────┤
+  │ AdminReservas.jsx (20-25) │ supabase.from('reservaciones')     │
+  │                            │ .select().update()                  │
+  ├────────────────────────────┼─────────────────────────────────────┤
+  │ ClientReservations.jsx     │ supabase.from('reservaciones')     │
+  │ (líneas 41-47)            │ .insert()                           │
+  └────────────────────────────┴─────────────────────────────────────┘
+
+SOLUCIÓN:
+  1. CREAR archivo: src/api/apiClient.js
+  2. ELIMINAR archivo: src/api/supabaseClient.js
+  3. Migrar TODAS las llamadas a usar fetch() contra el backend
+
+Ejemplo de src/api/apiClient.js que deben crear:
+  ┌──────────────────────────────────────────────────────────┐
+  │ const API_URL = 'http://localhost:3000/api';             │
+  │                                                          │
+  │ export async function api(path, opts = {}) {             │
+  │   const token = localStorage.getItem('cec_token');       │
+  │   const headers = {                                      │
+  │     'Content-Type': 'application/json',                  │
+  │     ...(token && { Authorization: `Bearer ${token}` })   │
+  │   };                                                     │
+  │   const res = await fetch(`${API_URL}${path}`, {         │
+  │     ...opts,                                             │
+  │     headers: { ...headers, ...opts.headers }             │
+  │   });                                                    │
+  │   const data = await res.json();                         │
+  │   if (!res.ok) throw new Error(data.error);              │
+  │   return data;                                           │
+  │ }                                                        │
+  └──────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #2 — LOGIN ADMIN COMPLETAMENTE ROTO
+═══════════════════════════════════════════════════════════════════
+
+Archivo: src/pages/admin/LoginAdmin.jsx
+
+Estado actual (ROTO):
+  - Busca en tabla "usuarios" → NO EXISTE (la tabla es "perfiles")
+  - Compara passwords en texto plano → INSEGURO
+  - El campo dice "Usuario" → Debería decir "Correo electrónico"
+  - Guarda sesión como "admin_session" → Debería ser "cec_token"
+  - NO usa JWT → Debería obtener un JWT del backend
+
+Cómo debe funcionar:
+  ┌──────────────────────────────────────────────────────────┐
+  │ ANTES (roto):                                            │
+  │ supabase.from('usuarios').eq('usuario',email)            │
+  │          .eq('password',password)                         │
+  │                                                          │
+  │ DESPUÉS (correcto):                                      │
+  │ const res = await fetch('/api/auth/login', {             │
+  │   method: 'POST',                                       │
+  │   headers: { 'Content-Type': 'application/json' },      │
+  │   body: JSON.stringify({ email, password })              │
+  │ });                                                      │
+  │ const { data } = await res.json();                       │
+  │ // data = { token: "eyJ...", user: {id,rol,nombre,...} } │
+  │                                                          │
+  │ localStorage.setItem('cec_token', data.token);           │
+  │ localStorage.setItem('cec_user', JSON.stringify(         │
+  │   data.user));                                           │
+  │ navigate('/admin');                                       │
+  └──────────────────────────────────────────────────────────┘
+
+  Credenciales para probar:
+    Email:    serviciodualcodesolutions.devs@gmail.com
+    Password: ServiciosDualcode
+
+  El label del input debe cambiarse de "Usuario" a "Correo electrónico"
+  y el type de "text" a "email".
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #3 — PROTECTEDROUTE NO VALIDA JWT
+═══════════════════════════════════════════════════════════════════
+
+Archivo: src/components/ProtectedRoute.jsx
+
+Estado actual:
+  ❌ Busca "admin_session" en localStorage (incorrecto)
+  ❌ No verifica si el token expiró
+  ❌ No consulta GET /api/auth/me para validar la sesión
+
+Cómo debe funcionar:
+  ┌──────────────────────────────────────────────────────────┐
+  │ const session = localStorage.getItem('cec_token');       │
+  │ if (!session) return <Navigate to="/admin/login" />;     │
+  │                                                          │
+  │ // Opcionalmente validar el token:                       │
+  │ // GET /api/auth/me con el token en el header            │
+  │ // Si devuelve 401 → redirigir a /admin/login            │
+  └──────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #4 — IDs DE LOCAL HARDCODEADOS EN 6 ARCHIVOS
+═══════════════════════════════════════════════════════════════════
+
+El localId está fijo como string en 6 archivos:
+  const localId = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197"; // Timucuy
+
+Archivos afectados:
+  1. Menu.jsx              (línea 10)
+  2. Checkout.jsx           (línea 8)
+  3. AdminDashboard.jsx     (línea 14)
+  4. AdminReservas.jsx      (línea 12)
+  5. ClientReservations.jsx (línea 12)
+  6. LoginPin.jsx           (línea 10)
+
+Solución:
+  PARA ADMIN → El localId viene del JWT:
+    const user = JSON.parse(localStorage.getItem('cec_user'));
+    const localId = user.id_local;  // viene del login
+    // Nota: El dueño tiene id_local = null (acceso a todos)
+    
+  PARA CLIENTE (tablet) → Variable de entorno o desde la URL:
+    Opción A: VITE_LOCAL_ID en el .env del frontend
+    Opción B: URL con slug → /menu/timucuy → buscar en GET /api/locales
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #5 — CHECKOUT ENVÍA MODALIDADES INCORRECTAS
+═══════════════════════════════════════════════════════════════════
+
+Archivo: src/pages/client/Checkout.jsx
+
+El frontend envía:
+  deliveryType: 'local' | 'pickup' | 'delivery'
+
+El backend espera (validación Zod en orderSchemas.js):
+  deliveryType: 'local' | 'llevar' | 'domicilio'
+
+Mapeo que falta:
+  ┌─────────────────────┬────────────────────────┐
+  │ Frontend (actual)   │ Backend (correcto)     │
+  ├─────────────────────┼────────────────────────┤
+  │ 'local'             │ 'local'         ✅     │
+  │ 'pickup'            │ 'llevar'        ❌     │
+  │ 'delivery'          │ 'domicilio'     ❌     │
+  └─────────────────────┴────────────────────────┘
+
+Además:
+  - El campo "table" envía un NÚMERO (ej: "5") pero el backend
+    espera un UUID de mesa. Debe cambiarse a un <select> que
+    cargue las mesas desde GET /api/locales/:localId/mesas
+    y envíe el UUID seleccionado.
+
+
+═══════════════════════════════════════════════════════════════════
+BUG #6 — ADMINDASHBOARD USA COLUMNA INCORRECTA
+═══════════════════════════════════════════════════════════════════
+
+Archivo: src/pages/admin/AdminDashboard.jsx (línea 24)
+
+  .order('created_at', { ascending: false })
+                ↑
+  La columna en la base de datos se llama 'creado_at', no 'created_at'
+
+Pero esto se resuelve automáticamente al migrar a usar el backend,
+porque el backend ya usa el nombre correcto internamente.
+
+
+═══════════════════════════════════════════════════════════════════
+MIGRACIÓN COMPLETA: CADA ARCHIVO Y SU CAMBIO
+═══════════════════════════════════════════════════════════════════
+
+A continuación, el detalle exacto de cómo migrar cada archivo
+del frontend para que use el backend en lugar de Supabase directo.
+
+───── 1. LoginAdmin.jsx ─────
+  ANTES: supabase.from('usuarios').select().eq().eq()
+  DESPUÉS:
+    const res = await fetch('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const { data } = await res.json();
+    if (res.ok) {
+      localStorage.setItem('cec_token', data.token);
+      localStorage.setItem('cec_user', JSON.stringify(data.user));
+      navigate('/admin');
+    } else {
+      alert("Credenciales incorrectas");
+    }
+
+───── 2. Menu.jsx ─────
+  ANTES:
+    supabase.from('categorias').select('*').eq('id_local', LOCAL_ID)
+    supabase.from('productos').select('*, ingredientes_personalizables(*)')
+  DESPUÉS:
+    const catRes = await fetch(`http://localhost:3000/api/locales/${LOCAL_ID}/categorias`);
+    const catData = await catRes.json();
+    setCategories(catData.data);
+
+    const prodRes = await fetch(`http://localhost:3000/api/locales/${LOCAL_ID}/productos`);
+    const prodData = await prodRes.json();
+    setProducts(prodData.data);
+
+  NOTA: La respuesta del backend envuelve todo en { success, data }
+  Los campos de producto vienen en camelCase:
+    precioBase, imagenUrl, visibleMenu, categoriaId, etc.
+  Los ingredientes vienen como "ingredientes" (no "ingredientes_personalizables")
+
+───── 3. AdminDashboard.jsx ─────
+  ANTES:
+    supabase.from('pedidos').select('*').eq('id_local', localId)
+    supabase.from('pedidos').update({ estado }).eq('id', order.id)
+  DESPUÉS:
+    // Cargar pedidos
+    const token = localStorage.getItem('cec_token');
+    const res = await fetch('http://localhost:3000/api/orders?localId=' + localId, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const { data } = await res.json();
+    setOrders(data);
+
+    // Avanzar estado
+    await fetch(`http://localhost:3000/api/orders/${order.id}/estado`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ estado: nextState })
+    });
+
+  NOTA: La respuesta de pedidos viene paginada:
+    { success, data: [...], meta: { total, page, limit, totalPages } }
+    Los campos son camelCase: nombreCliente, modalidad, mesaId, etc.
+
+───── 4. AdminReservas.jsx ─────
+  ANTES:
+    supabase.from('reservaciones').select('*').eq('id_local', localId)
+    supabase.from('reservaciones').update({ anticipo_pagado, estado }).eq('id', id)
+  DESPUÉS:
+    // Listar
+    const res = await fetch('http://localhost:3000/api/reservaciones?localId=' + localId, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Confirmar anticipo
+    await fetch(`http://localhost:3000/api/reservaciones/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ estado: 'aceptada', anticipoPagado: true })
+    });
+
+  NOTA: Campos en camelCase: nombreCliente, fechaReserva, horaReserva,
+        numPersonas, notasAdicionales, anticipoPagado, montoAnticipo
+
+───── 5. ClientReservations.jsx ─────
+  ANTES:
+    supabase.from('reservaciones').insert([{ ...formData, id_local, estado }])
+  DESPUÉS:
+    const res = await fetch('http://localhost:3000/api/reservaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        localId: localId,
+        nombreCliente: formData.nombre_cliente,
+        telefono: formData.telefono,
+        fechaReserva: formData.fecha_reserva,
+        horaReserva: formData.hora_reserva,
+        numPersonas: formData.num_personas,
+        notasAdicionales: formData.notas_adicionales
+      })
+    });
+  
+  IMPORTANTE: Este endpoint es PÚBLICO (no necesita token).
+  Los campos deben enviarse en camelCase, NO en snake_case.
+
+───── 6. Checkout.jsx ─────
+  Este archivo YA usa el backend ✅ pero necesita 2 correcciones:
+    a) Cambiar deliveryType: 'pickup' → 'llevar', 'delivery' → 'domicilio'
+    b) Cambiar el campo "table" de número a UUID de mesa
+       → Cargar mesas con GET /api/locales/:localId/mesas
+       → Mostrar un <select> con las mesas disponibles
+       → Enviar el UUID de la mesa seleccionada
+
+───── 7. ProtectedRoute.jsx ─────
+  Cambiar 'admin_session' → 'cec_token'
+
+───── 8. CustomizationModal.jsx ─────
+  NOTA: Cuando migre Menu.jsx al backend, los ingredientes del producto
+  vendrán en un campo diferente. Actualmente espera:
+    product.ingredientes_personalizables
+  El backend devuelve:
+    product.ingredientes
+  Hay que ajustar esa referencia en la línea 8.
+
+
+═══════════════════════════════════════════════════════════════════
+PANTALLAS NUEVAS QUE FALTAN POR CREAR
+═══════════════════════════════════════════════════════════════════
+
+El backend tiene 41 endpoints. Las pantallas actuales solo cubren
+14 endpoints. Faltan 8 pantallas para cubrir el resto:
+
+┌─────┬──────────────────────────────┬──────────────────────────────┬───────────┐
+│  #  │ PANTALLA                     │ ENDPOINTS QUE CONSUME        │ PRIORIDAD │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  1  │ Gestión de Usuarios          │ GET /api/users               │   ALTA    │
+│     │ /admin/usuarios              │ GET /api/users/:id           │           │
+│     │ (solo rol: dueño)            │ POST /api/users              │           │
+│     │                              │ PATCH /api/users/:id         │           │
+│     │ CRUD de admins: crear,       │ PATCH /users/:id/toggle      │           │
+│     │ editar, activar/desactivar   │ (5 endpoints)                │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  2  │ Gestión de Sucursales        │ GET /api/locales             │   ALTA    │
+│     │ /admin/sucursales            │ GET /api/locales/:id         │           │
+│     │ (solo rol: dueño)            │ POST /api/locales            │           │
+│     │                              │ PATCH /api/locales/:id       │           │
+│     │ CRUD de locales: crear,      │ DELETE /api/locales/:id      │           │
+│     │ editar, eliminar sucursales  │ (5 endpoints)                │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  3  │ Gestión de Mesas             │ GET /.../mesas               │   MEDIA   │
+│     │ /admin/mesas                 │ POST /.../mesas              │           │
+│     │ (dueño o admin)              │ PATCH /.../mesas/:id         │           │
+│     │                              │ PATCH /.../mesas/:id/estado  │           │
+│     │ CRUD + cambio de estado      │ DELETE /.../mesas/:id        │           │
+│     │ disponible/ocupada/reservada │ (5 endpoints)                │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  4  │ Gestión de Categorías        │ GET /.../categorias          │   MEDIA   │
+│     │ /admin/categorias            │ POST /.../categorias         │           │
+│     │ (dueño o admin)              │ PATCH /.../categorias/:id    │           │
+│     │                              │ DELETE /.../categorias/:id   │           │
+│     │ CRUD de categorías del menú  │ (4 endpoints)                │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  5  │ Gestión de Productos         │ GET /.../productos           │   ALTA    │
+│     │ + Ingredientes               │ GET /.../productos/:id       │           │
+│     │ /admin/productos             │ POST /.../productos          │           │
+│     │ (dueño o admin)              │ PATCH /.../productos/:id     │           │
+│     │                              │ PATCH /.../disponibilidad    │           │
+│     │ CRUD de productos + agregar, │ DELETE /.../productos/:id    │           │
+│     │ editar y eliminar            │ POST /.../ingredientes       │           │
+│     │ ingredientes personalizables │ PATCH /.../ingredientes/:id  │           │
+│     │                              │ DELETE /.../ingredientes/:id │           │
+│     │                              │ (9 endpoints)                │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  6  │ Corte de Caja                │ POST /.../cortes             │   ALTA    │
+│     │ /admin/cortes                │ GET /.../cortes              │           │
+│     │ (dueño o admin)              │ GET /.../cortes/:id          │           │
+│     │                              │ (3 endpoints)                │           │
+│     │ Generar corte, ver historial │                              │           │
+│     │ y detalle de cada corte      │                              │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  7  │ Detalle de Pedido            │ GET /api/orders/:id          │   MEDIA   │
+│     │ (modal dentro del Kanban)    │ (1 endpoint)                 │           │
+│     │                              │                              │           │
+│     │ El botón "Ver Detalle" del   │ Muestra: items, subtotales,  │           │
+│     │ Kanban no hace nada ahorita  │ total, personalizaciones,    │           │
+│     │                              │ nombre, teléfono, mesa       │           │
+├─────┼──────────────────────────────┼──────────────────────────────┼───────────┤
+│  8  │ Seguimiento de Pedido        │ WebSocket: order_updated     │   BAJA    │
+│     │ /pedido/:id                  │ GET /api/orders/:id          │           │
+│     │ (pantalla del cliente)       │                              │           │
+│     │                              │ Muestra al cliente el estado │           │
+│     │ StatusPedido.jsx ya existe   │ actual de su pedido en       │           │
+│     │ como stub vacío              │ tiempo real                  │           │
+└─────┴──────────────────────────────┴──────────────────────────────┴───────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+SIDEBAR DEL ADMIN — MENÚ DE NAVEGACIÓN
+═══════════════════════════════════════════════════════════════════
+
+El sidebar actual solo tiene 3 botones:
+  ✅ Panel Recepción  → /admin
+  ✅ Reservaciones    → /admin/reservas
+  ⬜ Ajustes (Pronto) → No funciona
+
+Debe actualizarse para incluir:
+  ┌─────────────────────────────────────────┐
+  │ 📊 Panel Recepción   → /admin          │
+  │ 📅 Reservaciones     → /admin/reservas │
+  │ 👥 Usuarios          → /admin/usuarios │  ← NUEVO (solo dueño)
+  │ 🏪 Sucursales        → /admin/locales  │  ← NUEVO (solo dueño)
+  │ 🪑 Mesas             → /admin/mesas    │  ← NUEVO
+  │ 📂 Categorías        → /admin/cats     │  ← NUEVO
+  │ 🍔 Productos         → /admin/prods    │  ← NUEVO
+  │ 💰 Corte de Caja     → /admin/cortes   │  ← NUEVO
+  │ ⚙️ Ajustes           → /admin/config   │
+  │ 🚪 Cerrar Sesión     → logout()        │  ← NUEVO
+  └─────────────────────────────────────────┘
+
+IMPORTANTE: Los botones de "Usuarios" y "Sucursales" solo deben
+mostrarse si el usuario logueado tiene rol = "dueño".
+Se puede verificar con:
+  const user = JSON.parse(localStorage.getItem('cec_user'));
+  if (user.rol === 'dueño') { // mostrar botones }
+
+
+═══════════════════════════════════════════════════════════════════
+MAPA DE CAMPOS: snake_case (DB) → camelCase (API)
+═══════════════════════════════════════════════════════════════════
+
+El frontend actual usa snake_case porque habla directo con la DB.
+Al migrar al backend, TODOS los campos son camelCase:
+
+  ┌────────────────────────┬─────────────────────────┐
+  │ SUPABASE (snake_case)  │ BACKEND API (camelCase) │
+  ├────────────────────────┼─────────────────────────┤
+  │ id_local               │ localId                 │
+  │ nombre_cliente         │ nombreCliente            │
+  │ fecha_reserva          │ fechaReserva             │
+  │ hora_reserva           │ horaReserva              │
+  │ num_personas           │ numPersonas              │
+  │ notas_adicionales      │ notasAdicionales         │
+  │ anticipo_pagado        │ anticipoPagado           │
+  │ monto_anticipo         │ montoAnticipo            │
+  │ primer_nombre          │ primerNombre             │
+  │ segundo_nombre         │ segundoNombre            │
+  │ primer_apellido        │ primerApellido           │
+  │ segundo_apellido       │ segundoApellido          │
+  │ telefono_contacto      │ telefonoContacto         │
+  │ estado_cuenta          │ estadoCuenta             │
+  │ nombre_sucursal        │ nombreSucursal           │
+  │ nombre_o_numero        │ nombreONumero            │
+  │ precio_base            │ precioBase               │
+  │ visible_menu           │ visibleMenu              │
+  │ imagen_url             │ imagenUrl                │
+  │ id_categoria           │ categoriaId              │
+  │ id_mesa                │ mesaId                   │
+  │ total_pago             │ total                    │
+  │ creado_at              │ creadoAt                 │
+  │ ingredientes_          │ ingredientes             │
+  │   personalizables      │                          │
+  │ nombre_ingrediente     │ nombreIngrediente        │
+  │ precio_extra           │ precioExtra              │
+  │ permite_doble          │ permiteDoble             │
+  │ es_base                │ esBase                   │
+  └────────────────────────┴─────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+VARIABLE DE ENTORNO DEL FRONTEND (.env)
+═══════════════════════════════════════════════════════════════════
+
+El .env actual solo tiene:
+  VITE_SUPABASE_URL=...
+  VITE_SUPABASE_ANON_KEY=...
+
+Debe agregar:
+  VITE_API_URL=http://localhost:3000/api
+  VITE_LOCAL_ID=02ef18a9-62aa-4fcd-98ee-1134e4aaf197
+
+Y cuando se elimine supabaseClient.js, se pueden quitar las
+variables de Supabase del frontend.
+
+
+═══════════════════════════════════════════════════════════════════
+FORMATO DE RESPUESTA DEL BACKEND
+═══════════════════════════════════════════════════════════════════
+
+TODAS las respuestas del backend siguen este formato:
+
+  Éxito:
+    { "success": true, "data": { ... } }
+    { "success": true, "data": [...], "meta": { page, limit, total } }
+
+  Error:
+    { "success": false, "error": "Mensaje del error" }
+
+  Códigos HTTP:
+    200 — OK (GET, PATCH, DELETE)
+    201 — Creado (POST)
+    400 — Error de validación (Zod)
+    401 — Sin token / token expirado
+    403 — Sin permisos (rol incorrecto)
+    404 — Recurso no encontrado
+    500 — Error interno del servidor
+
+
+═══════════════════════════════════════════════════════════════════
+CHECKLIST DE PRIORIDADES PARA EL DESARROLLADOR FRONTEND
+═══════════════════════════════════════════════════════════════════
+
+🔴 URGENTE — El sistema NO funciona sin esto:
+  [ ] 1. Crear src/api/apiClient.js (helper de fetch)
+  [ ] 2. Agregar VITE_API_URL al .env
+  [ ] 3. Migrar LoginAdmin.jsx → POST /api/auth/login
+         (usar credenciales del dueño para probar)
+  [ ] 4. Cambiar ProtectedRoute.jsx → buscar 'cec_token'
+  [ ] 5. Corregir Checkout.jsx → modalidades 'llevar'/'domicilio'
+
+🟡 IMPORTANTE — Funcionalidad core que está rota:
+  [ ] 6. Migrar Menu.jsx → GET /categorias + /productos
+  [ ] 7. Migrar AdminDashboard.jsx → GET/PATCH /orders
+  [ ] 8. Migrar AdminReservas.jsx → GET/PATCH /reservaciones
+  [ ] 9. Migrar ClientReservations.jsx → POST /reservaciones
+  [ ] 10. Eliminar src/api/supabaseClient.js
+  [ ] 11. Quitar localIds hardcodeados
+
+🟢 PANTALLAS NUEVAS — Después de lo anterior:
+  [ ] 12. Pantalla: Gestión de Usuarios (5 endpoints)
+  [ ] 13. Pantalla: Gestión de Sucursales (5 endpoints)
+  [ ] 14. Pantalla: Gestión de Mesas (5 endpoints)
+  [ ] 15. Pantalla: Gestión de Categorías (4 endpoints)
+  [ ] 16. Pantalla: Gestión de Productos + Ingredientes (9 endpoints)
+  [ ] 17. Pantalla: Corte de Caja (3 endpoints)
+  [ ] 18. Modal: Detalle de Pedido (1 endpoint)
+  [ ] 19. Pantalla: StatusPedido — Seguimiento del cliente (WebSocket)
+  [ ] 20. Actualizar Sidebar con navegación completa
+  [ ] 21. Agregar botón "Cerrar Sesión" en el sidebar
+
+
+═══════════════════════════════════════════════════════════════════
+DOCUMENTACIÓN Y RECURSOS DEL BACKEND
+═══════════════════════════════════════════════════════════════════
+
+  📚 Swagger UI (probar endpoints):
+     http://localhost:3000/api/docs
+
+  ❤️  Health Check:
+     http://localhost:3000/api/health
+
+  ⚡ WebSocket (Socket.IO):
+     ws://localhost:3000
+     Eventos: join_local, new_order, order_updated, mesa_updated
+
+  🔑 Credenciales del Dueño:
+     Email:    serviciodualcodesolutions.devs@gmail.com
+     Password: ServiciosDualcode
+
+  📄 Archivo de endpoints detallados:
+     endpoints_completos.txt (en la raíz del proyecto)
+
+  🐳 Docker:
+     cd backend && docker-compose up
+
+
+═══════════════════════════════════════════════════════════════════
+FIN DEL REPORTE — v2.0
+═══════════════════════════════════════════════════════════════════

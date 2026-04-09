@@ -1,0 +1,139 @@
+# src/api/docs/mesas.yaml
+paths:
+  /api/locales/{localId}/mesas:
+    get:
+      tags: [Mesas]
+      summary: Listar mesas de un local
+      description: "🟢 Público — La tablet del cliente usa esto para mostrar mesas disponibles."
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Lista de mesas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Mesa'
+
+    post:
+      tags: [Mesas]
+      summary: Crear mesa
+      description: "🔴🟡 Admin/dueño con localGuard."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre_o_numero, capacidad]
+              properties:
+                nombre_o_numero: { type: string, example: "Mesa 1" }
+                capacidad: { type: integer, minimum: 1, example: 4 }
+      responses:
+        201:
+          description: Mesa creada
+
+  /api/locales/{localId}/mesas/{id}:
+    patch:
+      tags: [Mesas]
+      summary: Editar mesa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre_o_numero: { type: string }
+                capacidad: { type: integer, minimum: 1 }
+      responses:
+        200:
+          description: Mesa actualizada
+
+    delete:
+      tags: [Mesas]
+      summary: Eliminar mesa
+      description: "🔴 Solo dueño. Falla si la mesa tiene pedidos activos."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        200:
+          description: Mesa eliminada
+        400:
+          description: Mesa tiene pedidos activos
+
+  /api/locales/{localId}/mesas/{id}/estado:
+    patch:
+      tags: [Mesas]
+      summary: Cambiar estado de mesa
+      description: "🔴🟡 Admin/dueño. Emite evento WebSocket mesa_updated."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado_actual]
+              properties:
+                estado_actual: { type: string, enum: [disponible, ocupada] }
+      responses:
+        200:
+          description: Estado actualizado
+
+components:
+  schemas:
+    Mesa:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        localId: { type: string, format: uuid }
+        nombreONumero: { type: string, example: "Mesa 1" }
+        capacidad: { type: integer, example: 4 }
+        estadoActual: { type: string, enum: [disponible, ocupada] }
+        creadoAt: { type: string, format: date-time }

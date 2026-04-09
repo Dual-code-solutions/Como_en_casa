@@ -1,0 +1,78 @@
+# src/api/docs/reservaciones.yaml
+paths:
+  /api/reservaciones:
+    post:
+      tags: [Reservaciones]
+      summary: Crear reservación
+      description: |
+        🟢 Público — Formulario web del cliente.
+        Detecta choques de horario si se especifica mesa.
+        Emite evento WebSocket: new_reservation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [localId, nombreCliente, telefono, fechaReserva, horaReserva, numPersonas]
+              properties:
+                localId: { type: string, format: uuid }
+                mesaId: { type: string, format: uuid, nullable: true }
+                nombreCliente: { type: string, example: "María García" }
+                telefono: { type: string, example: "9997654321" }
+                fechaReserva: { type: string, format: date, example: "2026-04-15" }
+                horaReserva: { type: string, example: "19:00" }
+                numPersonas: { type: integer, minimum: 1, example: 4 }
+                notasAdicionales: { type: string, example: "Cumpleaños, decoración especial", nullable: true }
+      responses:
+        201:
+          description: Reservación creada
+        400:
+          description: Choque de horario o datos inválidos
+
+    get:
+      tags: [Reservaciones]
+      summary: Listar reservaciones
+      description: "🔴🟡 Admin ve solo su local."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: localId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: fecha
+          in: query
+          schema: { type: string, format: date }
+        - name: estado
+          in: query
+          schema: { type: string, enum: [pendiente, aceptada, cancelada] }
+      responses:
+        200:
+          description: Lista de reservaciones con datos de mesa
+
+  /api/reservaciones/{id}:
+    patch:
+      tags: [Reservaciones]
+      summary: Actualizar reservación
+      description: "🔴🟡 Admin/dueño. Para confirmar anticipo, cancelar, o asignar mesa."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado: { type: string, enum: [pendiente, aceptada, cancelada] }
+                anticipoPagado: { type: boolean }
+                montoAnticipo: { type: number, example: 250.00 }
+                metodoPagoAnticipo: { type: string, example: "transferencia" }
+                mesaId: { type: string, format: uuid, nullable: true }
+      responses:
+        200:
+          description: Reservación actualizada

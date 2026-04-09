@@ -1,0 +1,122 @@
+# src/api/docs/auth.yaml
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: Autentica al usuario con Supabase Auth y devuelve un JWT propio del backend.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: serviciodualcodesolutions.devs@gmail.com
+                password:
+                  type: string
+                  minLength: 6
+                  example: ServiciosDualcode
+      responses:
+        200:
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string, example: "eyJhbGciOiJIUzI1NiIs..." }
+                      user:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          rol: { type: string, enum: [dueño, admin] }
+                          id_local: { type: string, format: uuid, nullable: true }
+                          nombre: { type: string, example: "Dual Code" }
+        401:
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión
+      description: Endpoint simbólico. El frontend borra el token localmente.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Sesión cerrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Sesión cerrada" }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Obtener perfil del usuario autenticado
+      description: Devuelve los datos del usuario basándose en el JWT del header.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Token inválido o expirado
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string, example: "Credenciales incorrectas" }
+
+    ValidationError:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string, example: "email" }
+              message: { type: string, example: "Formato de email inválido" }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        localId: { type: string, format: uuid, nullable: true }
+        rol: { type: string, enum: [dueño, admin] }
+        primerNombre: { type: string, example: "Dual" }
+        segundoNombre: { type: string, nullable: true }
+        primerApellido: { type: string, example: "Code" }
+        segundoApellido: { type: string, nullable: true }
+        telefonoContacto: { type: string, example: "9991234567" }
+        estadoCuenta: { type: boolean, example: true }
+        fechaRegistro: { type: string, format: date-time }

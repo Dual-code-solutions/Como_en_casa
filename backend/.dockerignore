@@ -1,0 +1,37 @@
+# ── Dependencias ──
+node_modules/
+npm-debug.log*
+
+# ── Variables de entorno ──
+.env
+.env.local
+.env.*.local
+
+# ── Logs ──
+logs/
+*.log
+
+# ── IDE ──
+.vscode/
+.idea/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Tests ──
+tests/
+coverage/
+
+# ── Docker ──
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# ── Git ──
+.git/
+.gitignore
+
+# ── Docs ──
+*.md
+*.txt

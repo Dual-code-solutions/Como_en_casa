@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────
+# Docker Compose — Como en Casa Backend
+# ─────────────────────────────────────────────────────
+# Para desarrollo local: docker-compose up
+# Para producción: docker-compose -f docker-compose.yml up -d
+# ─────────────────────────────────────────────────────
+
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cec-api
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # En desarrollo: hot-reload con nodemon
+      - ./src:/app/src:ro
+      - ./server.js:/app/server.js:ro
+      # Persistir logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cec-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  cec-network:
+    driver: bridge
