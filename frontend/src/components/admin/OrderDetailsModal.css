@@ -392,6 +392,7 @@
   background: #fff;
   font-family: inherit;
   font-size: 0.9rem;
+  color: #331E1C; /* Fix for invisible text */
   box-sizing: border-box;
   transition: border-color 0.2s;
 }

@@ -6,8 +6,14 @@ import './OrderDetailsModal.css';
 
 const PRESETS = [10, 15, 20, 30, 45];
 
-const modalidadLabel = (m, mesaId) => {
-  if (m === 'local') return `En Local${mesaId ? ` · Mesa ${mesaId}` : ''}`;
+const LOCAL_ID = '02ef18a9-62aa-4fcd-98ee-1134e4aaf197';
+
+const modalidadLabel = (m, mesaId, nombreMesa) => {
+  if (m === 'local') {
+    if (nombreMesa) return `En Local · ${nombreMesa}`;
+    if (mesaId) return `En Local · Mesa (ID: ${String(mesaId).slice(-4)})`;
+    return 'En Local';
+  }
   if (m === 'domicilio') return 'A Domicilio';
   return 'Para Llevar';
 };
@@ -33,7 +39,22 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
     setLoading(true);
     try {
       const res = await apiClient.get(`/orders/${orderId}`);
-      if (res.data && res.data.data) setOrder(res.data.data);
+      const data = res.data?.data;
+      if (data) {
+        if (data.modalidad === 'local' && data.mesaId) {
+          try {
+            const mesasRes = await apiClient.get(`/locales/${LOCAL_ID}/mesas`);
+            const mesas = mesasRes.data?.data || [];
+            const objMesa = mesas.find(m => m.id === data.mesaId);
+            if (objMesa) {
+              data.nombreMesa = objMesa.nombre_o_numero || objMesa.nombreONumero;
+            }
+          } catch(e) {
+            console.error('Error fetching mesas mapping', e);
+          }
+        }
+        setOrder(data);
+      }
     } catch (err) {
       console.error('Error fetching order details', err);
     } finally {
@@ -48,6 +69,18 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
         estado: 'cocina',
         tiempoEsperaMinutos: tiempoEspera || 15
       });
+
+      // Si es modalidad local y tiene mesa asignada, ocuparla automáticamente.
+      if (order.modalidad === 'local' && order.mesaId) {
+        try {
+          await apiClient.patch(`/locales/${LOCAL_ID}/mesas/${order.mesaId}/estado`, { 
+            estado_actual: 'ocupada' 
+          });
+        } catch (tableErr) {
+          console.error('Error al intentar marcar la mesa como ocupada:', tableErr);
+        }
+      }
+
       onOrderUpdated(orderId, 'cocina');
       onClose();
     } catch (e) {
@@ -65,8 +98,7 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
     setActionLoading(true);
     try {
       await apiClient.patch(`/orders/${orderId}/estado`, {
-        estado: 'cancelado',
-        motivoCancelacion: motivoRechazo
+        estado: 'cancelado'
       });
       onOrderUpdated(orderId, 'cancelado');
       onClose();
@@ -127,7 +159,7 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
                   <MapPin size={18} className="info-icon" />
                   <div>
                     <p className="info-label">Modalidad</p>
-                    <p className="info-value">{modalidadLabel(order.modalidad, order.mesaId)}</p>
+                    <p className="info-value">{modalidadLabel(order.modalidad, order.mesaId, order.nombreMesa)}</p>
                     {order.direccionEnvio && <p className="info-subvalue">{order.direccionEnvio}</p>}
                     {order.referenciaUbicacion && <p className="info-subvalue">{order.referenciaUbicacion}</p>}
                   </div>

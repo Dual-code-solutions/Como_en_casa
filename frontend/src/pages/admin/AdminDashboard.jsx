@@ -13,19 +13,31 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mesasDict, setMesasDict] = useState({});
   const localId = "02ef18a9-62aa-4fcd-98ee-1134e4aaf197"; // Timucuy
 
   useEffect(() => {
     // 0. Cargar pedidos existentes al iniciar
     const fetchInitialOrders = async () => {
       try {
-        const response = await apiClient.get(`/orders?localId=${localId}`);
+        const [response, mesasRes] = await Promise.all([
+          apiClient.get(`/orders?localId=${localId}`),
+          apiClient.get(`/locales/${localId}/mesas`)
+        ]);
+        
+        // Build mesa dictionary
+        const mDict = {};
+        if (mesasRes.data?.data) {
+          mesasRes.data.data.forEach(m => mDict[m.id] = m.nombre_o_numero || m.nombreONumero);
+        }
+        setMesasDict(mDict);
+
         if (response.data && response.data.data) {
           const activeOrders = response.data.data.filter(o => o.estado !== 'finalizado');
           setOrders(activeOrders);
         }
       } catch (error) {
-        console.error("Error fetching orders:", error);
+        console.error("Error fetching orders / mesas:", error);
       }
     };
     fetchInitialOrders();
@@ -149,7 +161,9 @@ const AdminDashboard = () => {
                       <div className="order-tags">
                         <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
                         {order.mesaId && order.mesaId !== '-' && (
-                          <span className="tag-mesa">Mesa {order.mesaId}</span>
+                          <span className="tag-mesa" style={{ textTransform: 'capitalize' }}>
+                            {mesasDict[order.mesaId] || `Mesa ${String(order.mesaId).slice(-4)}`}
+                          </span>
                         )}
                         {order.tiempoEsperaMinutos && (
                           <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>

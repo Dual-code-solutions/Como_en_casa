@@ -379,16 +379,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .ticket-note strong { color: #4A2C2A; }
 
-.res-ticket-card .btn-back-menu {
-  display: block;
-  margin: 0;
-  border-radius: 0;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
-  padding: 1rem;
-  font-size: 0.95rem;
-  box-shadow: none;
+.ticket-actions {
+  padding: 0 2rem 2rem 2rem;
+  background: #fdf8f3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.btn-back-menu-ticket {
   width: 100%;
+  background-color: transparent;
+  color: #D2691E;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 2px solid #D2691E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+}
+
+.btn-back-menu-ticket:hover {
+  background-color: #fffaf0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(210, 105, 30, 0.15);
 }
 
 /* Slot hint message */
@@ -463,27 +480,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #ffffff;
   padding: 0.9rem 1rem;
   border: none;
-  border-radius: 0;
+  border-radius: 12px;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
   letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(26, 107, 58, 0.25);
 }
 
 .btn-download-ticket:hover:not(:disabled) {
   background: linear-gradient(135deg, #155c31 0%, #258748 100%);
-  transform: none;
-  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(26, 107, 58, 0.35);
 }
 
 .btn-download-ticket:disabled {
   opacity: 0.65;
   cursor: not-allowed;
-}
-
-/* Separador visual entre botones del ticket */
-.res-ticket-card .btn-download-ticket + .btn-back-menu {
-  border-top: 1px solid rgba(255,255,255,0.15);
+  box-shadow: none;
+  transform: none;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
 import { io } from 'socket.io-client';
-import { Calendar, Clock, Users, Phone, User as UserIcon, MessageSquare, CheckCircle, Loader, Download } from 'lucide-react';
+import { Calendar, Clock, Users, Phone, User as UserIcon, MessageSquare, CheckCircle, Loader, Download, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/client/Navbar';
 import { showAlert } from '../../utils/swalCustom';
@@ -105,7 +105,7 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
               <h2>¡Reserva Confirmada!</h2>
               <p>Te esperamos con los brazos abiertos 🏠</p></>
             ) : isCancelled ? (
-              <><div className="ticket-icon" style={{fontSize:'2.5rem'}}>&#128532;</div>
+              <><XCircle className="ticket-icon" size={48} />
               <h2>Reserva Cancelada</h2>
               <p>Lo sentimos, tu reservación fue cancelada.</p></>
             ) : (
@@ -160,20 +160,22 @@ const ReservaStatusScreen = ({ reservaId, formData, onBack }) => {
             )}
           </div>
 
-          {isConfirmed && (
-            <button
-              onClick={downloadTicket}
-              disabled={downloading}
-              className="btn-download-ticket"
-            >
-              <Download size={16} />
-              {downloading ? 'Generando PDF...' : 'Descargar Ticket'}
-            </button>
-          )}
+          <div className="ticket-actions">
+            {isConfirmed && (
+              <button
+                onClick={downloadTicket}
+                disabled={downloading}
+                className="btn-download-ticket"
+              >
+                <Download size={18} />
+                {downloading ? 'Generando PDF...' : 'Descargar Ticket'}
+              </button>
+            )}
 
-          <button onClick={onBack} className="btn-back-menu">
-            Volver al Menú
-          </button>
+            <button onClick={onBack} className="btn-back-menu-ticket">
+              Volver al Menú
+            </button>
+          </div>
         </div>
       </div>
 

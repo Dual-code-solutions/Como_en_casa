@@ -17,7 +17,7 @@
   background: none;
   border: none;
   font-weight: 600;
-  color: var(--primary-color, #d35400);
+  color: var(--oxido, #d35400);
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -47,20 +47,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin: -32px -32px 24px -32px;
+  padding: 32px;
+  background: linear-gradient(135deg, #4A2C2A, #8B4513);
+  border-radius: 16px 16px 0 0;
+  color: white;
 }
 
 .ticket-header h2 {
   margin: 0;
-  font-size: 1.5rem;
-  color: #333;
+  font-size: 1.6rem;
+  color: white;
+  font-family: 'Playfair Display', serif;
 }
 
 .ticket-number {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  background: var(--primary-color, #d35400);
+  background: var(--oxido, #d35400);
   color: white;
   padding: 8px 16px;
   border-radius: 12px;
@@ -118,12 +123,12 @@
 
 .step-icon.active {
   background: #fff3e0;
-  color: var(--primary-color, #d35400);
-  border: 2px solid var(--primary-color, #d35400);
+  color: var(--oxido, #d35400);
+  border: 2px solid var(--oxido, #d35400);
 }
 
 .step-icon.completed {
-  background: var(--primary-color, #d35400);
+  background: var(--oxido, #d35400);
   color: white;
 }
 
@@ -149,7 +154,7 @@
 }
 
 .step-line.line-filled {
-  background: var(--primary-color, #d35400);
+  background: var(--oxido, #d35400);
 }
 
 @keyframes pulseBorder {

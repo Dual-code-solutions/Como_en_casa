@@ -11,6 +11,7 @@ import { logoutAdmin, checkSession } from '../../api/apiClient';
 const NAV_ITEMS = [
   { path: '/admin',           label: 'Panel Recepción', Icon: LayoutDashboard },
   { path: '/admin/reservas',  label: 'Reservaciones',   Icon: CalendarIcon },
+  { path: '/admin/mesas',     label: 'Mesas',           Icon: Utensils },
   { path: '/admin/menu',      label: 'Gestión de Menú', Icon: Utensils },
   { path: '/admin/historial', label: 'Historial',       Icon: ClipboardList },
   { path: '/admin/usuarios',  label: 'Usuarios',        Icon: User },

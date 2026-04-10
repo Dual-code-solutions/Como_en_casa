@@ -22,6 +22,7 @@ const Historial = () => {
   const [expanded, setExpanded] = useState(null);
   const [search, setSearch] = useState('');
   const [filterModal, setFilterModal] = useState('all');
+  const [mesasDict, setMesasDict] = useState({});
 
   const getLocalToday = () => {
     const d = new Date();
@@ -87,6 +88,13 @@ const Historial = () => {
   // Traer los cortes al iniciar para saber si ya se cerró la caja
   useEffect(() => {
     fetchCortes();
+    apiClient.get(`/locales/${LOCAL_ID}/mesas`).then(res => {
+      const mDict = {};
+      if (res.data?.data) {
+        res.data.data.forEach(m => mDict[m.id] = m.nombre_o_numero || m.nombreONumero);
+      }
+      setMesasDict(mDict);
+    }).catch(e => console.error("Error fetching mesas", e));
   }, []);
 
   useEffect(() => { 
@@ -252,7 +260,7 @@ const Historial = () => {
                             <Clock size={12} /> {formatDate(order.creadoAt)}
                             &nbsp;·&nbsp;
                             <MapPin size={12} /> {modalidadMap[order.modalidad] || order.modalidad}
-                            {order.mesaId && ` · Mesa ${order.mesaId}`}
+                            {order.mesaId && order.mesaId !== '-' && ` · ${mesasDict[order.mesaId] || `Mesa ${String(order.mesaId).slice(-4)}`}`}
                           </p>
                         </div>
                       </div>

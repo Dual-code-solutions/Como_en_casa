@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { Calendar, Users, Clock, CheckCircle, XCircle, DollarSign, MessageSquare, RefreshCw } from 'lucide-react';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import { showAlert, showConfirm } from '../../utils/swalCustom';
+import Swal from 'sweetalert2';
 import './AdminReservas.css';
 import './AdminDashboard.css';
 
@@ -44,11 +45,61 @@ const AdminReservas = () => {
     return () => socket.disconnect();
   }, []);
 
-  const handleConfirmar = async (id) => {
-    const ok = await showConfirm('¿Confirmar reservación?', 'La reservación cambiará a estado "Aceptada" y se notificará al cliente.', 'Sí, confirmar', 'question');
-    if (!ok) return;
+  const handleConfirmar = async (id, numPersonas) => {
     try {
-      await apiClient.patch(`/reservaciones/${id}`, { estado: 'aceptada' });
+      // Obtener mesas disponibles para que el admin asigne
+      const mesasRes = await apiClient.get(`/locales/${LOCAL_ID}/mesas`);
+      const mesas = mesasRes.data?.data || [];
+      
+      let tableOptionsHTML = '<option value="">No asignar mesa por ahora</option>';
+      mesas.forEach(m => {
+        const isOptima = m.capacidad >= numPersonas;
+        const ocupadaFlag = m.estado_actual === 'ocupada' ? ' (OCUPADA)' : '';
+        const capFlag = !isOptima ? ' (Mesa pequeña)' : '';
+        tableOptionsHTML += `<option value="${m.id}">${m.nombre_o_numero || m.nombreONumero} - Cap: ${m.capacidad} pers.${ocupadaFlag}${capFlag}</option>`;
+      });
+
+      const { value: formValues } = await Swal.fire({
+        title: 'Confirmar Reservación',
+        html: `
+        <div style="text-align: left;">
+          <p>La reservación cambiará a estado "Aceptada". Opcionalmente puedes asignar una mesa ahora mismo.</p>
+          <div style="margin-top: 1rem; position: relative;">
+            <label style="font-weight: 600; color: #4A2C2A; font-family: 'Poppins', sans-serif;">Asignar Mesa (opcional):</label>
+            <select id="swal-select-mesa" class="swal2-select" style="width: 100%; max-width: 100%; margin: 0.5rem 0 0 0; padding: 0.8rem; border-radius: 10px; border: 1px solid rgba(139, 69, 19, 0.25); background-color: #faf7f2; color: #333; font-family: 'Poppins', sans-serif; font-size: 0.95rem; outline: none; appearance: none; cursor: pointer;">
+              ${tableOptionsHTML}
+            </select>
+            <!-- Custom chevron for select -->
+            <div style="position: absolute; right: 1rem; top: calc(50% + 14px); pointer-events: none; border: solid rgba(74, 44, 42, 0.7); border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: translateY(-50%) rotate(45deg);"></div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Reservación',
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'swal-custom-popup',
+        confirmButton: 'btn-primary',
+        cancelButton: 'btn-secondary'
+      },
+      preConfirm: () => {
+          return {
+            mesaId: document.getElementById('swal-select-mesa').value || null
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      const payload = { estado: 'aceptada' };
+      if (formValues.mesaId) {
+        payload.mesaId = formValues.mesaId;
+      }
+
+      await apiClient.patch(`/reservaciones/${id}`, payload);
+      showAlert('Éxito', 'Reservación confirmada.', 'success');
       fetchReservas();
     } catch (e) {
       showAlert('Error', e.response?.data?.message || e.message, 'error');
@@ -138,6 +189,11 @@ const AdminReservas = () => {
                         </div>
                         <p className="res-phone">{res.telefono}</p>
                         <p className="res-date">{res.fechaReserva} · {res.horaReserva?.slice(0, 5)} hrs · {res.numPersonas} personas</p>
+                        {res.mesaId && res.mesas && (
+                          <p className="res-mesa" style={{ fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '600', marginTop: '0.2rem' }}>
+                            Mesa asignada: {res.mesas.nombre_o_numero}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -157,7 +213,7 @@ const AdminReservas = () => {
                       <div className="reserva-actions">
                         {/* Confirmar reserva (si está pendiente) */}
                         {res.estado === 'pendiente' && (
-                          <button className="btn-confirm-res" onClick={() => handleConfirmar(res.id)} title="Confirmar reservación">
+                          <button className="btn-confirm-res" onClick={() => handleConfirmar(res.id, res.numPersonas)} title="Confirmar reservación">
                             <CheckCircle size={18} /> Confirmar
                           </button>
                         )}

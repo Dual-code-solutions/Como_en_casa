@@ -178,11 +178,14 @@ const Checkout = () => {
                   onChange={(e) => setFormData({...formData, table: e.target.value})}
                 >
                   <option value="">Selecciona tu mesa...</option>
-                  {mesas.map(mesa => (
-                    <option key={mesa.id} value={mesa.id}>
-                      {mesa.nombre_o_numero} (Capacidad: {mesa.capacidad})
-                    </option>
-                  ))}
+                  {mesas.map(mesa => {
+                    const isOcupada = mesa.estado_actual === 'ocupada';
+                    return (
+                      <option key={mesa.id} value={mesa.id} disabled={isOcupada}>
+                        {mesa.nombre_o_numero || mesa.nombreONumero} (Cap: {mesa.capacidad}) {isOcupada ? '— (Mesa Ocupada)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             )}

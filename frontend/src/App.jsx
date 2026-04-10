@@ -12,6 +12,7 @@ import AdminMenu from './pages/admin/AdminMenu';
 import Historial from './pages/admin/Historial';
 import Ajustes from './pages/admin/Ajustes';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
+import AdminMesas from './pages/admin/AdminMesas';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -37,6 +38,11 @@ function App() {
         <Route path="/admin/reservas" element={
           <ProtectedRoute>
             <AdminReservas />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/mesas" element={
+          <ProtectedRoute>
+            <AdminMesas />
           </ProtectedRoute>
         } />
         <Route path="/admin/historial" element={

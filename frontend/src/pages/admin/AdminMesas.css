@@ -1,0 +1,222 @@
+.admin-mesas-container {
+  padding: 0 2rem;
+}
+
+.mesas-actions {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-add-mesa {
+  background: linear-gradient(135deg, #8B4513, #A0522D);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(139, 69, 19, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-add-mesa:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.35);
+}
+
+.mesas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Mesa Card - Premium Styling */
+.mesa-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(74, 44, 42, 0.05);
+  border: 1px solid rgba(139, 69, 19, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+}
+
+.mesa-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(74, 44, 42, 0.1);
+}
+
+.mesa-card.estado-ocupada {
+  border-left: 4px solid #DE743E;
+}
+
+.mesa-card.estado-disponible {
+  border-left: 4px solid #5C8C6C;
+}
+
+.mesa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.mesa-title-wrapper {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.mesa-icon {
+  color: #8B4513;
+  background: #FFF7EC;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.mesa-info h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  color: #4A2C2A;
+  margin-bottom: 0.1rem;
+}
+
+.mesa-desc {
+  font-size: 0.85rem;
+  color: #7A6055;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.3;
+}
+
+.mesa-state-pill {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mesa-state-pill.disponible {
+  background: #ebf5ee;
+  color: #2b6140;
+  border: 1px solid rgba(92, 140, 108, 0.3);
+}
+
+.mesa-state-pill.ocupada {
+  background: #fff4ed;
+  color: #c2410c;
+  border: 1px solid rgba(222, 116, 62, 0.3);
+}
+
+.mesa-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed rgba(139, 69, 19, 0.15);
+}
+
+.mesa-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #5C433A;
+  font-family: 'Poppins', sans-serif;
+}
+
+.mesa-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  align-items: center;
+}
+
+.btn-toggle-state {
+  flex: 1;
+  background: #FDFBF0;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  padding: 0.55rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #4A2C2A;
+}
+
+.btn-toggle-state:hover {
+  background: #F5E6BE;
+  color: #2D1B10;
+  border-color: #D2691E;
+}
+
+.action-icon-group {
+  display: flex;
+  gap: 0.2rem;
+  margin-left: 0.5rem;
+}
+
+.btn-icon-mesa {
+  background: none;
+  border: none;
+  color: #9d8376;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-icon-mesa:hover {
+  background: #FFF7EC;
+  color: #8B4513;
+}
+
+.btn-icon-mesa.delete:hover {
+  background: #fff0f0;
+  color: #d32f2f;
+}
+
+/* Modal form (SweetAlert custom classes apply here to mesa-inputs) */
+.mesa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+}
+
+.mesa-form-group label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4A2C2A;
+  font-family: 'Poppins', sans-serif;
+}
+
+.mesa-input {
+  padding: 0.8rem;
+  border: 1px solid rgba(139, 69, 19, 0.25);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: 'Poppins', sans-serif;
+  background-color: #faf7f2;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.mesa-input:focus {
+  outline: none;
+  background-color: #ffffff;
+  border-color: #A0522D;
+  box-shadow: 0 0 0 4px rgba(160, 82, 45, 0.1);
+}
