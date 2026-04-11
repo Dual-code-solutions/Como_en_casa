@@ -5,6 +5,7 @@ const createMesaSchema = z.object({
   nombre_o_numero: z
     .string({ required_error: 'El nombre o número de mesa es requerido' })
     .min(1, 'El nombre de mesa no puede estar vacío'),
+  descripcion: z.string().optional(),
   capacidad: z
     .number({ required_error: 'La capacidad es requerida' })
     .int('La capacidad debe ser un número entero')
@@ -16,6 +17,7 @@ const updateMesaSchema = z.object({
     .string()
     .min(1, 'El nombre de mesa no puede estar vacío')
     .optional(),
+  descripcion: z.string().optional(),
   capacidad: z
     .number()
     .int('La capacidad debe ser un número entero')

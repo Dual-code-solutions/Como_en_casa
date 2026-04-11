@@ -33,6 +33,7 @@ class SupabaseMesaRepository extends MesaRepository {
       .insert({
         id_local:        mesa.localId,
         nombre_o_numero: mesa.nombreONumero,
+        descripcion:     mesa.descripcion,
         capacidad:       mesa.capacidad,
         estado_actual:   mesa.estadoActual || 'disponible'
       })
@@ -46,6 +47,7 @@ class SupabaseMesaRepository extends MesaRepository {
   async update(id, data) {
     const updateData = {};
     if (data.nombreONumero !== undefined) updateData.nombre_o_numero = data.nombreONumero;
+    if (data.descripcion !== undefined)   updateData.descripcion = data.descripcion;
     if (data.capacidad !== undefined)     updateData.capacidad = data.capacidad;
 
     const { data: updated, error } = await supabase
@@ -96,6 +98,7 @@ class SupabaseMesaRepository extends MesaRepository {
       id:             row.id,
       localId:        row.id_local,
       nombreONumero:  row.nombre_o_numero,
+      descripcion:    row.descripcion,
       capacidad:      row.capacidad,
       estadoActual:   row.estado_actual,
       creadoAt:       row.creado_at

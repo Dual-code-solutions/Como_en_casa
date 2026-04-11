@@ -1,0 +1,1946 @@
+================================================================================
+  COMO EN CASA — PLAN COMPLETO DE IMPLEMENTACIÓN
+  Backend: Node.js + Express + Supabase | Arquitectura en Capas (Clean Arch)
+  Endpoints: 41 | WebSocket: 5 eventos | Roles: dueño | admin | público
+================================================================================
+  Lee este documento de arriba a abajo. Cada sección te dice QUÉ crear,
+  DÓNDE colocarlo y POR QUÉ existe. Sigue el orden para no bloquearte.
+================================================================================
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 0 — ESTRUCTURA DE CARPETAS COMPLETA
+════════════════════════════════════════════════════════════════════════════════
+
+Antes de escribir una sola línea de código, crea esta estructura de carpetas.
+Cada carpeta tiene una razón de existir basada en Clean Architecture.
+
+  como-en-casa-backend/
+  │
+  ├── src/
+  │   │
+  │   ├── domain/                        ← CAPA 1: Corazón del negocio
+  │   │   ├── entities/                  ← Objetos de negocio puro
+  │   │   │   ├── Order.js
+  │   │   │   ├── Product.js
+  │   │   │   ├── Mesa.js
+  │   │   │   ├── Reservation.js
+  │   │   │   └── User.js
+  │   │   └── repositories/              ← Contratos (interfaces) de datos
+  │   │       ├── OrderRepository.js
+  │   │       ├── ProductRepository.js
+  │   │       ├── MesaRepository.js
+  │   │       ├── ReservationRepository.js
+  │   │       ├── UserRepository.js
+  │   │       ├── LocalRepository.js
+  │   │       ├── CategoryRepository.js
+  │   │       └── CorteRepository.js
+  │   │
+  │   ├── application/                   ← CAPA 2: Casos de uso
+  │   │   └── use-cases/
+  │   │       ├── auth/
+  │   │       │   ├── LoginUseCase.js
+  │   │       │   └── GetMeUseCase.js
+  │   │       ├── users/
+  │   │       │   ├── ListUsersUseCase.js
+  │   │       │   ├── GetUserUseCase.js
+  │   │       │   ├── CreateUserUseCase.js
+  │   │       │   ├── UpdateUserUseCase.js
+  │   │       │   └── ToggleUserStatusUseCase.js
+  │   │       ├── locales/
+  │   │       │   ├── ListLocalesUseCase.js
+  │   │       │   ├── GetLocalUseCase.js
+  │   │       │   ├── CreateLocalUseCase.js
+  │   │       │   ├── UpdateLocalUseCase.js
+  │   │       │   └── DeleteLocalUseCase.js
+  │   │       ├── mesas/
+  │   │       │   ├── ListMesasUseCase.js
+  │   │       │   ├── CreateMesaUseCase.js
+  │   │       │   ├── UpdateMesaUseCase.js
+  │   │       │   ├── ChangeMesaEstadoUseCase.js
+  │   │       │   └── DeleteMesaUseCase.js
+  │   │       ├── categorias/
+  │   │       │   ├── ListCategoriasUseCase.js
+  │   │       │   ├── CreateCategoriaUseCase.js
+  │   │       │   ├── UpdateCategoriaUseCase.js
+  │   │       │   └── DeleteCategoriaUseCase.js
+  │   │       ├── productos/
+  │   │       │   ├── ListProductosUseCase.js
+  │   │       │   ├── GetProductoUseCase.js
+  │   │       │   ├── CreateProductoUseCase.js
+  │   │       │   ├── UpdateProductoUseCase.js
+  │   │       │   ├── ToggleDisponibilidadUseCase.js
+  │   │       │   ├── DeleteProductoUseCase.js
+  │   │       │   ├── AddIngredienteUseCase.js
+  │   │       │   ├── UpdateIngredienteUseCase.js
+  │   │       │   └── DeleteIngredienteUseCase.js
+  │   │       ├── orders/
+  │   │       │   ├── ConfirmOrderUseCase.js
+  │   │       │   ├── ListOrdersUseCase.js
+  │   │       │   ├── GetOrderUseCase.js
+  │   │       │   └── UpdateOrderEstadoUseCase.js
+  │   │       ├── reservaciones/
+  │   │       │   ├── CreateReservacionUseCase.js
+  │   │       │   ├── ListReservacionesUseCase.js
+  │   │       │   └── UpdateReservacionUseCase.js
+  │   │       └── cortes/
+  │   │           ├── GenerarCorteUseCase.js
+  │   │           ├── ListCortesUseCase.js
+  │   │           └── GetCorteUseCase.js
+  │   │
+  │   ├── infrastructure/                ← CAPA 3: Implementaciones técnicas
+  │   │   ├── config/
+  │   │   │   ├── supabase.js            ← Cliente Supabase
+  │   │   │   └── env.js                 ← Validación de variables de entorno
+  │   │   ├── logger/
+  │   │   │   └── logger.js              ← Winston configurado
+  │   │   └── database/                  ← Implementaciones de repositorios
+  │   │       ├── SupabaseOrderRepository.js
+  │   │       ├── SupabaseProductRepository.js
+  │   │       ├── SupabaseMesaRepository.js
+  │   │       ├── SupabaseReservationRepository.js
+  │   │       ├── SupabaseUserRepository.js
+  │   │       ├── SupabaseLocalRepository.js
+  │   │       ├── SupabaseCategoryRepository.js
+  │   │       └── SupabaseCorteRepository.js
+  │   │
+  │   ├── api/                           ← CAPA 4: Interfaz HTTP
+  │   │   ├── middlewares/
+  │   │   │   ├── authMiddleware.js      ← Verifica JWT de Supabase
+  │   │   │   ├── roleMiddleware.js      ← Verifica rol (dueño/admin)
+  │   │   │   ├── localGuard.js          ← Verifica que admin opere en su local
+  │   │   │   ├── validate.js            ← Validación con Zod
+  │   │   │   ├── errorMiddleware.js     ← Manejo central de errores
+  │   │   │   ├── requestLogger.js       ← Log de cada request HTTP
+  │   │   │   └── paginate.js            ← Estandariza page y limit
+  │   │   ├── dtos/                      ← Esquemas de validación Zod
+  │   │   │   ├── authSchemas.js
+  │   │   │   ├── userSchemas.js
+  │   │   │   ├── localSchemas.js
+  │   │   │   ├── mesaSchemas.js
+  │   │   │   ├── categoriaSchemas.js
+  │   │   │   ├── productoSchemas.js
+  │   │   │   ├── orderSchemas.js
+  │   │   │   ├── reservacionSchemas.js
+  │   │   │   └── corteSchemas.js
+  │   │   ├── routes/
+  │   │   │   ├── authRoutes.js
+  │   │   │   ├── userRoutes.js
+  │   │   │   ├── localRoutes.js
+  │   │   │   ├── mesaRoutes.js
+  │   │   │   ├── categoriaRoutes.js
+  │   │   │   ├── productoRoutes.js
+  │   │   │   ├── orderRoutes.js
+  │   │   │   ├── reservacionRoutes.js
+  │   │   │   └── corteRoutes.js
+  │   │   └── controllers/
+  │   │       ├── AuthController.js
+  │   │       ├── UserController.js
+  │   │       ├── LocalController.js
+  │   │       ├── MesaController.js
+  │   │       ├── CategoriaController.js
+  │   │       ├── ProductoController.js
+  │   │       ├── OrderController.js
+  │   │       ├── ReservacionController.js
+  │   │       └── CorteController.js
+  │   │
+  │   ├── websocket/
+  │   │   └── socketHandler.js           ← Lógica de Socket.IO
+  │   │
+  │   └── app.js                         ← Monta Express + rutas + middlewares
+  │
+  ├── tests/
+  │   ├── unit/
+  │   │   ├── domain/                    ← Tests de entidades
+  │   │   └── use-cases/                 ← Tests de casos de uso con mocks
+  │   ├── integration/                   ← Tests con Supabase de prueba
+  │   └── e2e/                           ← Tests HTTP completos con Supertest
+  │
+  ├── server.js                          ← Punto de entrada (arranca Express + Socket.IO)
+  ├── .env                               ← Variables reales (NO en Git)
+  ├── .env.example                       ← Plantilla (SÍ en Git)
+  ├── .gitignore
+  ├── Dockerfile
+  ├── docker-compose.yml
+  └── package.json
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 1 — CONFIGURACIÓN INICIAL (src/infrastructure/config/)
+════════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────
+  ARCHIVO: .env
+  QUÉ ES: Variables de entorno del proyecto. NUNCA subir a Git.
+────────────────────────────────────────
+
+  NODE_ENV=development
+  PORT=3000
+
+  # Supabase — obtener en app.supabase.com → Settings → API
+  SUPABASE_URL=https://tu-proyecto.supabase.co
+  SUPABASE_ANON_KEY=tu-anon-key
+  SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
+
+  # JWT propio del backend (diferente al de Supabase)
+  JWT_SECRET=una-clave-larga-y-segura-cambia-esto
+  JWT_EXPIRES_IN=8h
+
+  LOG_LEVEL=info
+
+────────────────────────────────────────
+  ARCHIVO: src/infrastructure/config/supabase.js
+  QUÉ ES: Una sola instancia del cliente Supabase para todo el backend.
+  POR QUÉ: No crear múltiples clientes. Uno con service role key (operaciones
+           de servidor, bypass de RLS cuando es necesario).
+────────────────────────────────────────
+
+  const { createClient } = require('@supabase/supabase-js');
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+    // Service role key porque este es el BACKEND. Nunca usar esta key en frontend.
+  );
+
+  module.exports = supabase;
+
+────────────────────────────────────────
+  ARCHIVO: src/infrastructure/logger/logger.js
+  QUÉ ES: Logger profesional con Winston. Reemplaza todos los console.log.
+  POR QUÉ: En producción necesitas saber qué pasó, cuándo y en qué contexto.
+           console.log no tiene niveles, no tiene timestamp, no guarda archivos.
+────────────────────────────────────────
+
+  const winston = require('winston');
+  const { combine, timestamp, json, colorize, printf } = winston.format;
+
+  const devFormat = combine(
+    colorize(),
+    timestamp({ format: 'HH:mm:ss' }),
+    printf(({ level, message, timestamp, ...meta }) =>
+      `${timestamp} [${level}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`
+    )
+  );
+
+  const prodFormat = combine(timestamp(), json());
+
+  const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: process.env.NODE_ENV === 'production' ? prodFormat : devFormat,
+    transports: [
+      new winston.transports.Console(),
+      ...(process.env.NODE_ENV === 'production' ? [
+        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'logs/combined.log' })
+      ] : [])
+    ]
+  });
+
+  module.exports = logger;
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 2 — ENTIDADES (src/domain/entities/)
+════════════════════════════════════════════════════════════════════════════════
+
+Las entidades son objetos de negocio puros. NO importan Supabase ni Express.
+Solo definen qué ES algo y qué REGLAS tiene. Son el corazón de la aplicación.
+
+────────────────────────────────────────
+  ARCHIVO: src/domain/entities/Order.js
+  QUÉ ES: Representa un pedido. Tiene las reglas de qué estados son válidos.
+────────────────────────────────────────
+
+  class Order {
+    // Estados válidos del flujo de un pedido en el restaurante
+    static ESTADOS = ['entrante', 'cocina', 'listo', 'finalizado', 'cancelado'];
+    static FLUJO   = { entrante: 'cocina', cocina: 'listo', listo: 'finalizado' };
+
+    constructor({ id, localId, mesaId, nombreCliente, telefono,
+                  modalidad, items = [], total, estado = 'entrante', creadoAt }) {
+      this.id            = id;
+      this.localId       = localId;
+      this.mesaId        = mesaId || null;
+      this.nombreCliente = nombreCliente;
+      this.telefono      = telefono;
+      this.modalidad     = modalidad; // 'local' | 'domicilio' | 'llevar'
+      this.items         = items;
+      this.total         = total;
+      this.estado        = estado;
+      this.creadoAt      = creadoAt || new Date();
+    }
+
+    // REGLA: avanzar al siguiente estado del flujo
+    avanzarEstado() {
+      const siguiente = Order.FLUJO[this.estado];
+      if (!siguiente) throw new Error(`No se puede avanzar desde el estado: ${this.estado}`);
+      this.estado = siguiente;
+      return this;
+    }
+
+    // REGLA: solo se puede cancelar si aún es entrante
+    cancelar() {
+      if (this.estado !== 'entrante') {
+        throw new Error('Solo se puede cancelar un pedido entrante');
+      }
+      this.estado = 'cancelado';
+      return this;
+    }
+
+    // REGLA: calcular total desde los items (útil para verificar)
+    calcularTotal() {
+      return this.items.reduce((sum, item) => sum + item.subtotal, 0);
+    }
+  }
+
+  module.exports = Order;
+
+────────────────────────────────────────
+  ARCHIVO: src/domain/entities/Mesa.js
+────────────────────────────────────────
+
+  class Mesa {
+    static ESTADOS = ['disponible', 'ocupada'];
+
+    constructor({ id, localId, nombreONumero, capacidad, estadoActual = 'disponible' }) {
+      this.id             = id;
+      this.localId        = localId;
+      this.nombreONumero  = nombreONumero;
+      this.capacidad      = capacidad;
+      this.estadoActual   = estadoActual;
+    }
+
+    ocupar() {
+      if (this.estadoActual === 'ocupada') throw new Error('La mesa ya está ocupada');
+      this.estadoActual = 'ocupada';
+      return this;
+    }
+
+    liberar() {
+      this.estadoActual = 'disponible';
+      return this;
+    }
+  }
+
+  module.exports = Mesa;
+
+────────────────────────────────────────
+  ARCHIVO: src/domain/entities/Reservation.js
+────────────────────────────────────────
+
+  class Reservation {
+    static ESTADOS = ['pendiente', 'aceptada', 'cancelada'];
+
+    constructor({ id, localId, mesaId, nombreCliente, telefono,
+                  fechaReserva, horaReserva, numPersonas,
+                  notasAdicionales, estado = 'pendiente',
+                  anticipoPagado = false, montoAnticipo,
+                  metodoPagoAnticipo }) {
+      this.id                  = id;
+      this.localId             = localId;
+      this.mesaId              = mesaId || null;
+      this.nombreCliente       = nombreCliente;
+      this.telefono            = telefono;
+      this.fechaReserva        = fechaReserva;
+      this.horaReserva         = horaReserva;
+      this.numPersonas         = numPersonas;
+      this.notasAdicionales    = notasAdicionales || '';
+      this.estado              = estado;
+      this.anticipoPagado      = anticipoPagado;
+      this.montoAnticipo       = montoAnticipo || 0;
+      this.metodoPagoAnticipo  = metodoPagoAnticipo || null;
+    }
+
+    aceptar() {
+      if (this.estado !== 'pendiente') throw new Error('Solo se puede aceptar una reservación pendiente');
+      this.estado = 'aceptada';
+      return this;
+    }
+
+    cancelar() {
+      if (this.estado === 'cancelada') throw new Error('La reservación ya está cancelada');
+      this.estado = 'cancelada';
+      return this;
+    }
+  }
+
+  module.exports = Reservation;
+
+────────────────────────────────────────
+  ARCHIVOS RESTANTES:
+  - src/domain/entities/Product.js  → nombre, precio, disponible, visibleMenu, ingredientes
+  - src/domain/entities/User.js     → id, rol, localId, nombre, estadoCuenta
+  Los creas con la misma estructura: constructor + métodos de reglas de negocio.
+────────────────────────────────────────
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 3 — REPOSITORIOS: CONTRATOS (src/domain/repositories/)
+════════════════════════════════════════════════════════════════════════════════
+
+Un repositorio define QUÉ operaciones de datos necesitas, sin decir CÓMO.
+Es el "contrato" entre tu lógica de negocio y la base de datos.
+Si mañana cambias Supabase, solo cambias la implementación, no el contrato.
+
+────────────────────────────────────────
+  ARCHIVO: src/domain/repositories/OrderRepository.js
+────────────────────────────────────────
+
+  class OrderRepository {
+    async findById(id)                                      { throw new Error('Not implemented') }
+    async findAll({ localId, estado, fecha, page, limit }) { throw new Error('Not implemented') }
+    async save(order)                                       { throw new Error('Not implemented') }
+    async updateEstado(id, estado)                          { throw new Error('Not implemented') }
+  }
+
+  module.exports = OrderRepository;
+
+────────────────────────────────────────
+  ARCHIVO: src/domain/repositories/MesaRepository.js
+────────────────────────────────────────
+
+  class MesaRepository {
+    async findAll(localId)                    { throw new Error('Not implemented') }
+    async findById(id)                        { throw new Error('Not implemented') }
+    async save(mesa)                          { throw new Error('Not implemented') }
+    async update(id, data)                    { throw new Error('Not implemented') }
+    async updateEstado(id, estado)            { throw new Error('Not implemented') }
+    async delete(id)                          { throw new Error('Not implemented') }
+    async hasActiveOrders(id)                 { throw new Error('Not implemented') }
+  }
+
+  module.exports = MesaRepository;
+
+  Crea el mismo patrón para:
+  - UserRepository      → findAll, findById, create, update, toggleStatus
+  - LocalRepository     → findAll, findById, create, update, delete
+  - ProductRepository   → findAll, findById, create, update, delete, + ingredientes
+  - CategoryRepository  → findAll, findById, create, update, delete
+  - ReservationRepository → findAll, findById, save, update
+  - CorteRepository     → findAll, findById, save, calcularTotalesDia
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 4 — REPOSITORIOS: IMPLEMENTACIONES SUPABASE (src/infrastructure/database/)
+════════════════════════════════════════════════════════════════════════════════
+
+Aquí SÍ vive Supabase. Cada clase implementa el contrato del dominio
+y traduce entre el formato de Supabase y el formato de nuestras entidades.
+
+────────────────────────────────────────
+  ARCHIVO: src/infrastructure/database/SupabaseMesaRepository.js
+────────────────────────────────────────
+
+  const MesaRepository = require('../../domain/repositories/MesaRepository');
+  const Mesa = require('../../domain/entities/Mesa');
+  const supabase = require('../config/supabase');
+
+  class SupabaseMesaRepository extends MesaRepository {
+
+    async findAll(localId) {
+      const { data, error } = await supabase
+        .from('mesas')
+        .select('*')
+        .eq('id_local', localId)
+        .order('nombre_o_numero', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data.map(this._toEntity);
+    }
+
+    async findById(id) {
+      const { data, error } = await supabase
+        .from('mesas')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data ? this._toEntity(data) : null;
+    }
+
+    async save(mesa) {
+      const { data, error } = await supabase
+        .from('mesas')
+        .insert({
+          id_local: mesa.localId,
+          nombre_o_numero: mesa.nombreONumero,
+          capacidad: mesa.capacidad,
+          estado_actual: mesa.estadoActual
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return this._toEntity(data);
+    }
+
+    async update(id, data) {
+      const { data: updated, error } = await supabase
+        .from('mesas')
+        .update({
+          nombre_o_numero: data.nombreONumero,
+          capacidad: data.capacidad
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return this._toEntity(updated);
+    }
+
+    async updateEstado(id, estado) {
+      const { data, error } = await supabase
+        .from('mesas')
+        .update({ estado_actual: estado })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return this._toEntity(data);
+    }
+
+    async delete(id) {
+      const { error } = await supabase.from('mesas').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
+
+    // Verifica si hay pedidos activos antes de eliminar una mesa
+    async hasActiveOrders(id) {
+      const { count, error } = await supabase
+        .from('pedidos')
+        .select('*', { count: 'exact', head: true })
+        .eq('id_mesa', id)
+        .in('estado', ['entrante', 'cocina', 'listo']);
+
+      if (error) throw new Error(error.message);
+      return count > 0;
+    }
+
+    // Convierte de snake_case (Supabase) a camelCase (entidad)
+    _toEntity(row) {
+      return new Mesa({
+        id: row.id,
+        localId: row.id_local,
+        nombreONumero: row.nombre_o_numero,
+        capacidad: row.capacidad,
+        estadoActual: row.estado_actual
+      });
+    }
+  }
+
+  module.exports = SupabaseMesaRepository;
+
+────────────────────────────────────────
+  ARCHIVO: src/infrastructure/database/SupabaseOrderRepository.js
+  (Más complejo porque maneja pedido + detalle_pedido en una transacción)
+────────────────────────────────────────
+
+  const OrderRepository = require('../../domain/repositories/OrderRepository');
+  const Order = require('../../domain/entities/Order');
+  const supabase = require('../config/supabase');
+
+  class SupabaseOrderRepository extends OrderRepository {
+
+    async save(order) {
+      // 1. Insertar en tabla pedidos
+      const { data: savedOrder, error: orderError } = await supabase
+        .from('pedidos')
+        .insert({
+          id_local: order.localId,
+          id_mesa: order.mesaId,
+          nombre_cliente: order.nombreCliente,
+          telefono: order.telefono,
+          modalidad: order.modalidad,
+          total_pago: order.total,
+          estado: order.estado
+        })
+        .select()
+        .single();
+
+      if (orderError) throw new Error(orderError.message);
+
+      // 2. Insertar items en detalle_pedido
+      const detalle = order.items.map(item => ({
+        id_pedido: savedOrder.id,
+        id_producto: item.id,
+        cantidad: item.quantity,
+        personalizacion: JSON.stringify(item.mods || {}),
+        subtotal: item.subtotal
+      }));
+
+      const { error: detalleError } = await supabase
+        .from('detalle_pedido')
+        .insert(detalle);
+
+      if (detalleError) throw new Error(detalleError.message);
+
+      return this._toEntity({ ...savedOrder, detalle_pedido: detalle });
+    }
+
+    async findAll({ localId, estado, fecha, page = 1, limit = 30 }) {
+      const offset = (page - 1) * limit;
+      let query = supabase
+        .from('pedidos')
+        .select('*, detalle_pedido(*, productos(nombre, precio_base)), mesas(nombre_o_numero)',
+                { count: 'exact' })
+        .eq('id_local', localId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (estado) query = query.eq('estado', estado);
+      if (fecha)  query = query.gte('created_at', `${fecha}T00:00:00`)
+                               .lte('created_at', `${fecha}T23:59:59`);
+
+      const { data, error, count } = await query;
+      if (error) throw new Error(error.message);
+
+      return {
+        data: data.map(this._toEntity),
+        meta: { total: count, page, limit, totalPages: Math.ceil(count / limit) }
+      };
+    }
+
+    async findById(id) {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .select('*, detalle_pedido(*, productos(nombre, precio_base)), mesas(nombre_o_numero)')
+        .eq('id', id)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data ? this._toEntity(data) : null;
+    }
+
+    async updateEstado(id, estado) {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .update({ estado })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return this._toEntity(data);
+    }
+
+    _toEntity(row) {
+      return new Order({
+        id: row.id,
+        localId: row.id_local,
+        mesaId: row.id_mesa,
+        nombreCliente: row.nombre_cliente,
+        telefono: row.telefono,
+        modalidad: row.modalidad,
+        items: row.detalle_pedido || [],
+        total: row.total_pago,
+        estado: row.estado,
+        creadoAt: row.created_at
+      });
+    }
+  }
+
+  module.exports = SupabaseOrderRepository;
+
+  Crea con el mismo patrón los repositorios para:
+  - SupabaseUserRepository.js       → users + auth.users de Supabase
+  - SupabaseLocalRepository.js      → locales
+  - SupabaseProductRepository.js    → productos + ingredientes_personalizables
+  - SupabaseCategoryRepository.js   → categorias
+  - SupabaseReservationRepository.js → reservaciones
+  - SupabaseCorteRepository.js      → historial_cortes + cálculos de totales
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 5 — CASOS DE USO (src/application/use-cases/)
+════════════════════════════════════════════════════════════════════════════════
+
+Los casos de uso orquestan el flujo. Reciben una intención, coordinan
+los repositorios, aplican las reglas de negocio y devuelven el resultado.
+NO saben nada de HTTP (sin req, sin res, sin status codes aquí).
+
+────────────────────────────────────────
+  ARCHIVO: src/application/use-cases/orders/ConfirmOrderUseCase.js
+  ENDPOINT QUE LO USA: #32 POST /api/orders/confirm
+────────────────────────────────────────
+
+  const Order = require('../../../domain/entities/Order');
+
+  class ConfirmOrderUseCase {
+    constructor({ orderRepository, mesaRepository, socketIO }) {
+      this.orderRepo = orderRepository;
+      this.mesaRepo  = mesaRepository;
+      this.io        = socketIO; // Para emitir WebSocket
+    }
+
+    async execute({ localId, customer, cart, total, deliveryType }) {
+      // 1. Si hay mesa, verificar que exista y esté disponible
+      let mesaId = null;
+      if (customer.table && deliveryType === 'local') {
+        const mesa = await this.mesaRepo.findById(customer.table);
+        if (!mesa) throw new Error('Mesa no encontrada');
+        mesaId = mesa.id;
+      }
+
+      // 2. Crear la entidad Order
+      const order = new Order({
+        localId,
+        mesaId,
+        nombreCliente: customer.name,
+        telefono:      customer.phone,
+        modalidad:     deliveryType,
+        items:         cart,
+        total
+      });
+
+      // 3. Persistir el pedido
+      const savedOrder = await this.orderRepo.save(order);
+
+      // 4. Si es en local y tiene mesa, marcarla como ocupada
+      if (mesaId) {
+        await this.mesaRepo.updateEstado(mesaId, 'ocupada');
+        // Emitir WebSocket para que la tablet refresque las mesas
+        this.io.to(localId).emit('mesa_updated', {
+          mesaId,
+          estado_actual: 'ocupada'
+        });
+      }
+
+      // 5. Emitir WebSocket al panel del admin para que aparezca en Kanban
+      this.io.to(localId).emit('new_order', {
+        orderId:      savedOrder.id,
+        customer:     customer.name,
+        deliveryType,
+        total,
+        mesa:         mesaId
+      });
+
+      return savedOrder;
+    }
+  }
+
+  module.exports = ConfirmOrderUseCase;
+
+────────────────────────────────────────
+  ARCHIVO: src/application/use-cases/orders/UpdateOrderEstadoUseCase.js
+  ENDPOINT QUE LO USA: #35 PATCH /api/orders/:id/estado
+────────────────────────────────────────
+
+  class UpdateOrderEstadoUseCase {
+    constructor({ orderRepository, mesaRepository, socketIO }) {
+      this.orderRepo = orderRepository;
+      this.mesaRepo  = mesaRepository;
+      this.io        = socketIO;
+    }
+
+    async execute({ orderId, nuevoEstado, userLocalId, userRole }) {
+      const order = await this.orderRepo.findById(orderId);
+      if (!order) throw new Error('Pedido no encontrado');
+
+      // Un admin solo puede manejar pedidos de su local
+      if (userRole === 'admin' && order.localId !== userLocalId) {
+        throw new Error('Sin permisos para este pedido');
+      }
+
+      // Validar que el nuevo estado sea el correcto en el flujo
+      const estadosValidos = ['cocina', 'listo', 'finalizado'];
+      if (!estadosValidos.includes(nuevoEstado)) {
+        throw new Error('Estado inválido');
+      }
+
+      // Actualizar en BD
+      const updated = await this.orderRepo.updateEstado(orderId, nuevoEstado);
+
+      // Si el pedido se finalizó y tenía mesa, liberar la mesa automáticamente
+      if (nuevoEstado === 'finalizado' && order.mesaId) {
+        // Verificar si hay otros pedidos activos en esa mesa
+        const hayMasPedidos = await this.orderRepo.findAll({
+          localId: order.localId,
+          mesaId: order.mesaId,
+          estado: 'activos' // lógica en repositorio
+        });
+
+        if (!hayMasPedidos.data.length) {
+          await this.mesaRepo.updateEstado(order.mesaId, 'disponible');
+          this.io.to(order.localId).emit('mesa_updated', {
+            mesaId: order.mesaId,
+            estado_actual: 'disponible'
+          });
+        }
+      }
+
+      // Notificar al room del local sobre el cambio de estado
+      this.io.to(order.localId).emit('order_updated', {
+        orderId,
+        nuevoEstado
+      });
+
+      return updated;
+    }
+  }
+
+  module.exports = UpdateOrderEstadoUseCase;
+
+────────────────────────────────────────
+  ARCHIVO: src/application/use-cases/auth/LoginUseCase.js
+  ENDPOINT QUE LO USA: #01 POST /api/auth/login
+────────────────────────────────────────
+
+  const supabase = require('../../../infrastructure/config/supabase');
+  const jwt = require('jsonwebtoken');
+
+  class LoginUseCase {
+    async execute({ email, password }) {
+      // 1. Autenticar contra Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error('Credenciales incorrectas');
+
+      // 2. Obtener el perfil del usuario desde la tabla perfiles
+      const { data: perfil, error: perfilError } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (perfilError || !perfil) throw new Error('Perfil no encontrado');
+      if (!perfil.estado_cuenta) throw new Error('Cuenta desactivada');
+
+      // 3. Crear JWT propio del backend (con el rol incluido)
+      const token = jwt.sign(
+        {
+          userId:      perfil.id,
+          rol:         perfil.rol,
+          localId:     perfil.id_local,
+          nombre:      perfil.primer_nombre
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+      );
+
+      return {
+        token,
+        user: {
+          id:       perfil.id,
+          rol:      perfil.rol,
+          id_local: perfil.id_local,
+          nombre:   `${perfil.primer_nombre} ${perfil.primer_apellido}`
+        }
+      };
+    }
+  }
+
+  module.exports = LoginUseCase;
+
+────────────────────────────────────────
+  ARCHIVO: src/application/use-cases/cortes/GenerarCorteUseCase.js
+  ENDPOINT QUE LO USA: #39 POST /api/locales/:localId/cortes
+────────────────────────────────────────
+
+  class GenerarCorteUseCase {
+    constructor({ corteRepository, orderRepository }) {
+      this.corteRepo = corteRepository;
+      this.orderRepo = orderRepository;
+    }
+
+    async execute({ localId, adminId }) {
+      const hoy = new Date().toISOString().split('T')[0];
+
+      // 1. Obtener todos los pedidos finalizados del día
+      const { data: pedidos } = await this.orderRepo.findAll({
+        localId,
+        estado: 'finalizado',
+        fecha: hoy,
+        page: 1,
+        limit: 9999 // para el corte queremos todos
+      });
+
+      // 2. Calcular totales
+      const totalIngresos = pedidos.reduce((sum, p) => sum + p.total, 0);
+      const conteoLocal      = pedidos.filter(p => p.modalidad === 'local').length;
+      const conteoDomicilio  = pedidos.filter(p => p.modalidad === 'domicilio').length;
+      const conteoLlevar     = pedidos.filter(p => p.modalidad === 'llevar').length;
+
+      // 3. Guardar el corte
+      const corte = await this.corteRepo.save({
+        localId,
+        adminId,
+        fechaCorte: hoy,
+        totalIngresosDia:      totalIngresos,
+        conteoPedidosLocal:    conteoLocal,
+        conteoPedidosDomicilio:conteoDomicilio,
+        conteoPedidosLlevar:   conteoLlevar,
+        resumenMetodosPago:    {} // Expandir si tienes campo metodo_pago en pedidos
+      });
+
+      return corte;
+    }
+  }
+
+  module.exports = GenerarCorteUseCase;
+
+────────────────────────────────────────
+  RESUMEN: Casos de uso que debes crear para cada módulo
+────────────────────────────────────────
+
+  AUTH (2):
+    LoginUseCase.js             → #01 Login
+    GetMeUseCase.js             → #03 Perfil del autenticado
+
+  USERS (5):
+    ListUsersUseCase.js         → #04 Listar usuarios
+    GetUserUseCase.js           → #05 Obtener usuario
+    CreateUserUseCase.js        → #06 Crear admin (llama Supabase Auth + tabla perfiles)
+    UpdateUserUseCase.js        → #07 Actualizar datos de perfil
+    ToggleUserStatusUseCase.js  → #08 Activar/desactivar cuenta
+
+  LOCALES (5):
+    ListLocalesUseCase.js       → #09
+    GetLocalUseCase.js          → #10
+    CreateLocalUseCase.js       → #11
+    UpdateLocalUseCase.js       → #12
+    DeleteLocalUseCase.js       → #13 (verificar dependencias antes)
+
+  MESAS (5):
+    ListMesasUseCase.js         → #14
+    CreateMesaUseCase.js        → #15
+    UpdateMesaUseCase.js        → #16
+    ChangeMesaEstadoUseCase.js  → #17 (también emite WebSocket mesa_updated)
+    DeleteMesaUseCase.js        → #18 (verifica pedidos activos antes)
+
+  CATEGORIAS (4):
+    ListCategoriasUseCase.js    → #19
+    CreateCategoriaUseCase.js   → #20
+    UpdateCategoriaUseCase.js   → #21
+    DeleteCategoriaUseCase.js   → #22
+
+  PRODUCTOS (9):
+    ListProductosUseCase.js     → #23 (con filtros: categoria, disponible, visible)
+    GetProductoUseCase.js       → #24
+    CreateProductoUseCase.js    → #25 (crea producto + ingredientes en lote)
+    UpdateProductoUseCase.js    → #26
+    ToggleDisponibilidadUseCase.js → #27
+    DeleteProductoUseCase.js    → #28 (cascada ingredientes)
+    AddIngredienteUseCase.js    → #29
+    UpdateIngredienteUseCase.js → #30
+    DeleteIngredienteUseCase.js → #31
+
+  ORDERS (4):
+    ConfirmOrderUseCase.js      → #32 (el más complejo: pedido + mesa + WS)
+    ListOrdersUseCase.js        → #33
+    GetOrderUseCase.js          → #34
+    UpdateOrderEstadoUseCase.js → #35 (avanza estado + libera mesa + WS)
+
+  RESERVACIONES (3):
+    CreateReservacionUseCase.js → #36
+    ListReservacionesUseCase.js → #37
+    UpdateReservacionUseCase.js → #38
+
+  CORTES (3):
+    GenerarCorteUseCase.js      → #39
+    ListCortesUseCase.js        → #40
+    GetCorteUseCase.js          → #41
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 6 — MIDDLEWARES (src/api/middlewares/)
+════════════════════════════════════════════════════════════════════════════════
+
+Los middlewares son funciones que se ejecutan antes de llegar al controller.
+Validan, autentican, registran y manejan errores de forma centralizada.
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/authMiddleware.js
+  QUÉ HACE: Verifica el JWT y adjunta userId, rol y localId al request.
+  SE USA EN: Todos los endpoints 🔴 y 🟡
+────────────────────────────────────────
+
+  const jwt = require('jsonwebtoken');
+
+  function authMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Token requerido' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.userId       = decoded.userId;
+      req.userRole     = decoded.rol;
+      req.userLocalId  = decoded.localId;
+      req.userName     = decoded.nombre;
+      next();
+    } catch (err) {
+      return res.status(401).json({ success: false, error: 'Token inválido o expirado' });
+    }
+  }
+
+  module.exports = authMiddleware;
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/roleMiddleware.js
+  QUÉ HACE: Verifica que el usuario tenga uno de los roles permitidos.
+  SE USA EN: Endpoints exclusivos de dueño o de admin
+────────────────────────────────────────
+
+  function requireRole(...roles) {
+    return (req, res, next) => {
+      if (!roles.includes(req.userRole)) {
+        return res.status(403).json({
+          success: false,
+          error: `Acceso restringido a: ${roles.join(', ')}`
+        });
+      }
+      next();
+    };
+  }
+
+  module.exports = { requireRole };
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/localGuard.js
+  QUÉ HACE: Un admin solo puede operar en su propio local.
+            El dueño puede operar en cualquiera.
+  SE USA EN: Endpoints de mesas, categorías, productos, etc. bajo :localId
+────────────────────────────────────────
+
+  function localGuard(req, res, next) {
+    // El dueño puede hacer todo, no necesita restricción
+    if (req.userRole === 'dueño') return next();
+
+    // El admin solo puede operar en su local
+    const localIdDelParam = req.params.localId;
+    if (localIdDelParam && localIdDelParam !== req.userLocalId) {
+      return res.status(403).json({
+        success: false,
+        error: 'No tienes acceso a este local'
+      });
+    }
+    next();
+  }
+
+  module.exports = localGuard;
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/validate.js
+  QUÉ HACE: Valida el body del request con un schema Zod.
+            Si falla, responde 400 con los errores específicos.
+────────────────────────────────────────
+
+  const { z } = require('zod');
+
+  function validate(schema) {
+    return (req, res, next) => {
+      const result = schema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          errors: result.error.errors.map(e => ({
+            field:   e.path.join('.'),
+            message: e.message
+          }))
+        });
+      }
+      req.body = result.data; // Datos limpios y tipados
+      next();
+    };
+  }
+
+  module.exports = validate;
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/paginate.js
+  QUÉ HACE: Estandariza page y limit en todos los endpoints de listado.
+────────────────────────────────────────
+
+  function paginate(req, res, next) {
+    req.pagination = {
+      page:   Math.max(1, parseInt(req.query.page)  || 1),
+      limit:  Math.min(100, parseInt(req.query.limit) || 30),
+      offset: 0
+    };
+    req.pagination.offset = (req.pagination.page - 1) * req.pagination.limit;
+    next();
+  }
+
+  module.exports = paginate;
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/errorMiddleware.js
+  QUÉ HACE: Captura todos los errores que llegan con next(error).
+            Un solo lugar para manejar todos los errores de la API.
+────────────────────────────────────────
+
+  const logger = require('../../infrastructure/logger/logger');
+
+  function errorMiddleware(err, req, res, next) {
+    logger.error('Request error', {
+      message: err.message,
+      url:     req.url,
+      method:  req.method,
+      userId:  req.userId || 'anon'
+    });
+
+    if (err.isBusinessError) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+
+    if (err.name === 'UnauthorizedError') {
+      return res.status(401).json({ success: false, error: 'No autorizado' });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'production'
+        ? 'Error interno del servidor'
+        : err.message
+    });
+  }
+
+  module.exports = errorMiddleware;
+
+────────────────────────────────────────
+  ARCHIVO: src/api/middlewares/requestLogger.js
+  QUÉ HACE: Registra cada request con método, URL, status y duración.
+────────────────────────────────────────
+
+  const logger = require('../../infrastructure/logger/logger');
+
+  function requestLogger(req, res, next) {
+    const start = Date.now();
+    res.on('finish', () => {
+      const level = res.statusCode >= 500 ? 'error'
+                  : res.statusCode >= 400 ? 'warn' : 'info';
+      logger[level]('HTTP', {
+        method:   req.method,
+        url:      req.url,
+        status:   res.statusCode,
+        duration: `${Date.now() - start}ms`,
+        user:     req.userId || 'anon'
+      });
+    });
+    next();
+  }
+
+  module.exports = requestLogger;
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 7 — VALIDACIONES ZOD (src/api/dtos/)
+════════════════════════════════════════════════════════════════════════════════
+
+Cada módulo tiene su archivo de schemas. Se usan en las rutas con validate().
+
+────────────────────────────────────────
+  ARCHIVO: src/api/dtos/orderSchemas.js
+────────────────────────────────────────
+
+  const { z } = require('zod');
+
+  const confirmOrderSchema = z.object({
+    localId:      z.string().uuid('localId inválido'),
+    deliveryType: z.enum(['local', 'domicilio', 'llevar']),
+    total:        z.number().positive('El total debe ser mayor a 0'),
+    customer: z.object({
+      name:      z.string().min(2, 'Nombre muy corto'),
+      phone:     z.string().min(10, 'Teléfono inválido'),
+      table:     z.string().uuid().optional(),    // Solo si deliveryType = 'local'
+      address:   z.string().optional(),           // Solo si deliveryType = 'domicilio'
+      landmark:  z.string().optional()
+    }),
+    cart: z.array(z.object({
+      id:       z.string().uuid(),
+      quantity: z.number().int().positive(),
+      mods:     z.any().optional(),
+      subtotal: z.number().positive()
+    })).min(1, 'El carrito no puede estar vacío')
+  });
+
+  const updateEstadoSchema = z.object({
+    estado: z.enum(['cocina', 'listo', 'finalizado'])
+  });
+
+  module.exports = { confirmOrderSchema, updateEstadoSchema };
+
+────────────────────────────────────────
+  ARCHIVO: src/api/dtos/mesaSchemas.js
+────────────────────────────────────────
+
+  const { z } = require('zod');
+
+  const createMesaSchema = z.object({
+    nombre_o_numero: z.string().min(1),
+    capacidad:       z.number().int().positive()
+  });
+
+  const updateMesaSchema = z.object({
+    nombre_o_numero: z.string().min(1).optional(),
+    capacidad:       z.number().int().positive().optional()
+  });
+
+  const updateEstadoMesaSchema = z.object({
+    estado_actual: z.enum(['disponible', 'ocupada'])
+  });
+
+  module.exports = { createMesaSchema, updateMesaSchema, updateEstadoMesaSchema };
+
+  Crea schemas similares para:
+  - authSchemas.js         → loginSchema (email + password)
+  - userSchemas.js         → createUserSchema, updateUserSchema
+  - localSchemas.js        → createLocalSchema, updateLocalSchema
+  - categoriaSchemas.js    → createCategoriaSchema, updateCategoriaSchema
+  - productoSchemas.js     → createProductoSchema (incluye array de ingredientes)
+  - reservacionSchemas.js  → createReservacionSchema, updateReservacionSchema
+  - corteSchemas.js        → (el body es vacío, todo lo calcula el backend)
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 8 — CONTROLLERS (src/api/controllers/)
+════════════════════════════════════════════════════════════════════════════════
+
+Los controllers son DELGADOS. Solo hacen tres cosas:
+  1. Extraen datos del request (req.body, req.params, req.query)
+  2. Llaman al caso de uso correspondiente
+  3. Devuelven la respuesta HTTP
+
+NUNCA hay lógica de negocio en un controller.
+
+────────────────────────────────────────
+  ARCHIVO: src/api/controllers/OrderController.js
+────────────────────────────────────────
+
+  class OrderController {
+    constructor({ confirmOrderUseCase, listOrdersUseCase,
+                  getOrderUseCase, updateOrderEstadoUseCase }) {
+      this.confirmOrder       = this.confirmOrder.bind(this);
+      this.listOrders         = this.listOrders.bind(this);
+      this.getOrder           = this.getOrder.bind(this);
+      this.updateEstado       = this.updateEstado.bind(this);
+
+      this._confirmOrder      = confirmOrderUseCase;
+      this._listOrders        = listOrdersUseCase;
+      this._getOrder          = getOrderUseCase;
+      this._updateEstado      = updateOrderEstadoUseCase;
+    }
+
+    async confirmOrder(req, res, next) {
+      try {
+        const order = await this._confirmOrder.execute(req.body);
+        res.status(201).json({ success: true, orderId: order.id });
+      } catch (e) { next(e); }
+    }
+
+    async listOrders(req, res, next) {
+      try {
+        const { localId, estado, fecha } = req.query;
+        const { page, limit } = req.pagination;
+        // Admin solo puede ver su local
+        const effectiveLocalId = req.userRole === 'admin' ? req.userLocalId : localId;
+        const result = await this._listOrders.execute({ localId: effectiveLocalId, estado, fecha, page, limit });
+        res.json({ success: true, ...result });
+      } catch (e) { next(e); }
+    }
+
+    async getOrder(req, res, next) {
+      try {
+        const order = await this._getOrder.execute(req.params.id);
+        if (!order) return res.status(404).json({ success: false, error: 'Pedido no encontrado' });
+        res.json({ success: true, data: order });
+      } catch (e) { next(e); }
+    }
+
+    async updateEstado(req, res, next) {
+      try {
+        const order = await this._updateEstado.execute({
+          orderId:     req.params.id,
+          nuevoEstado: req.body.estado,
+          userRole:    req.userRole,
+          userLocalId: req.userLocalId
+        });
+        res.json({ success: true, data: order });
+      } catch (e) { next(e); }
+    }
+  }
+
+  module.exports = OrderController;
+
+  Crea el mismo patrón para:
+  - AuthController.js        → login(), logout(), me()
+  - UserController.js        → list(), get(), create(), update(), toggleStatus()
+  - LocalController.js       → list(), get(), create(), update(), delete()
+  - MesaController.js        → list(), create(), update(), updateEstado(), delete()
+  - CategoriaController.js   → list(), create(), update(), delete()
+  - ProductoController.js    → list(), get(), create(), update(), toggleDisponibilidad(),
+                               delete(), addIngrediente(), updateIngrediente(), deleteIngrediente()
+  - ReservacionController.js → create(), list(), update()
+  - CorteController.js       → generate(), list(), get()
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 9 — RUTAS (src/api/routes/)
+════════════════════════════════════════════════════════════════════════════════
+
+Las rutas conectan las URLs con los controllers y aplican los middlewares
+en el orden correcto: autenticación → autorización → validación → controller.
+
+────────────────────────────────────────
+  ARCHIVO: src/api/routes/orderRoutes.js
+  CUBRE: #32, #33, #34, #35
+────────────────────────────────────────
+
+  const { Router } = require('express');
+  const authMiddleware   = require('../middlewares/authMiddleware');
+  const { requireRole }  = require('../middlewares/roleMiddleware');
+  const paginate         = require('../middlewares/paginate');
+  const validate         = require('../middlewares/validate');
+  const { confirmOrderSchema, updateEstadoSchema } = require('../dtos/orderSchemas');
+
+  module.exports = (orderController) => {
+    const router = Router();
+
+    // #32 — Confirmar pedido (tablet del cliente, sin auth)
+    router.post('/confirm',
+      validate(confirmOrderSchema),
+      orderController.confirmOrder
+    );
+
+    // #33 — Listar pedidos (admin/dueño)
+    router.get('/',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      paginate,
+      orderController.listOrders
+    );
+
+    // #34 — Detalle de un pedido
+    router.get('/:id',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      orderController.getOrder
+    );
+
+    // #35 — Cambiar estado del pedido en Kanban
+    router.patch('/:id/estado',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      validate(updateEstadoSchema),
+      orderController.updateEstado
+    );
+
+    return router;
+  };
+
+────────────────────────────────────────
+  ARCHIVO: src/api/routes/mesaRoutes.js
+  CUBRE: #14, #15, #16, #17, #18
+────────────────────────────────────────
+
+  const { Router } = require('express');
+  const authMiddleware  = require('../middlewares/authMiddleware');
+  const { requireRole } = require('../middlewares/roleMiddleware');
+  const localGuard      = require('../middlewares/localGuard');
+  const validate        = require('../middlewares/validate');
+  const { createMesaSchema, updateMesaSchema, updateEstadoMesaSchema } = require('../dtos/mesaSchemas');
+
+  module.exports = (mesaController) => {
+    const router = Router({ mergeParams: true }); // Para acceder a :localId del padre
+
+    // #14 — Listar mesas (público para tablet, también admin/dueño)
+    router.get('/', mesaController.list);
+
+    // #15 — Crear mesa
+    router.post('/',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      localGuard,
+      validate(createMesaSchema),
+      mesaController.create
+    );
+
+    // #16 — Editar mesa
+    router.patch('/:id',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      localGuard,
+      validate(updateMesaSchema),
+      mesaController.update
+    );
+
+    // #17 — Cambiar estado de mesa
+    router.patch('/:id/estado',
+      validate(updateEstadoMesaSchema),
+      mesaController.updateEstado
+      // NOTA: Este endpoint lo puede usar la tablet (sin auth) al confirmar pedido
+      // y el admin (con auth) para liberar manualmente. El backend distingue
+      // el origen por el body o por si trae token.
+    );
+
+    // #18 — Eliminar mesa
+    router.delete('/:id',
+      authMiddleware,
+      requireRole('admin', 'dueño'),
+      localGuard,
+      mesaController.delete
+    );
+
+    return router;
+  };
+
+────────────────────────────────────────
+  RESUMEN DE RUTAS POR ARCHIVO:
+
+  authRoutes.js
+    POST   /api/auth/login              → #01 (público)
+    POST   /api/auth/logout             → #02 (autenticado)
+    GET    /api/auth/me                 → #03 (autenticado)
+
+  userRoutes.js
+    GET    /api/users                   → #04 (admin/dueño)
+    GET    /api/users/:id               → #05 (admin/dueño)
+    POST   /api/users                   → #06 (solo dueño)
+    PATCH  /api/users/:id               → #07 (admin su perfil / dueño cualquiera)
+    PATCH  /api/users/:id/toggle-status → #08 (solo dueño)
+
+  localRoutes.js
+    GET    /api/locales                 → #09 (solo dueño)
+    GET    /api/locales/:id             → #10 (admin su local / dueño)
+    POST   /api/locales                 → #11 (solo dueño)
+    PATCH  /api/locales/:id             → #12 (solo dueño)
+    DELETE /api/locales/:id             → #13 (solo dueño)
+
+  mesaRoutes.js  (montado bajo /api/locales/:localId/mesas)
+    GET    /                            → #14 (público/admin/dueño)
+    POST   /                            → #15 (admin/dueño)
+    PATCH  /:id                         → #16 (admin/dueño)
+    PATCH  /:id/estado                  → #17 (público/admin)
+    DELETE /:id                         → #18 (admin/dueño)
+
+  categoriaRoutes.js  (bajo /api/locales/:localId/categorias)
+    GET    /                            → #19 (público/admin/dueño)
+    POST   /                            → #20 (admin/dueño)
+    PATCH  /:id                         → #21 (admin/dueño)
+    DELETE /:id                         → #22 (admin/dueño)
+
+  productoRoutes.js  (bajo /api/locales/:localId/productos)
+    GET    /                            → #23 (público/admin/dueño)
+    GET    /:id                         → #24 (público/admin/dueño)
+    POST   /                            → #25 (admin/dueño)
+    PATCH  /:id                         → #26 (admin/dueño)
+    PATCH  /:id/disponibilidad          → #27 (admin/dueño)
+    DELETE /:id                         → #28 (admin/dueño)
+    POST   /:productoId/ingredientes    → #29 (admin/dueño)
+    PATCH  /:productoId/ingredientes/:id → #30 (admin/dueño)
+    DELETE /:productoId/ingredientes/:id → #31 (admin/dueño)
+
+  orderRoutes.js  (bajo /api/orders)
+    POST   /confirm                     → #32 (público)
+    GET    /                            → #33 (admin/dueño)
+    GET    /:id                         → #34 (admin/dueño)
+    PATCH  /:id/estado                  → #35 (admin/dueño)
+
+  reservacionRoutes.js  (bajo /api/reservaciones)
+    POST   /                            → #36 (público)
+    GET    /                            → #37 (admin/dueño)
+    PATCH  /:id                         → #38 (admin/dueño)
+
+  corteRoutes.js  (bajo /api/locales/:localId/cortes)
+    POST   /                            → #39 (admin/dueño)
+    GET    /                            → #40 (admin/dueño)
+    GET    /:id                         → #41 (admin/dueño)
+────────────────────────────────────────
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 10 — WEBSOCKET (src/websocket/socketHandler.js)
+════════════════════════════════════════════════════════════════════════════════
+
+Socket.IO permite comunicación en tiempo real. El admin ve los pedidos
+aparecer en su Kanban sin refrescar la página. La tablet ve las mesas
+cambiar de color sin refrescar.
+
+────────────────────────────────────────
+  ARCHIVO: src/websocket/socketHandler.js
+────────────────────────────────────────
+
+  function initSocket(io) {
+    io.on('connection', (socket) => {
+
+      // El admin o la tablet se unen al "room" de su sucursal
+      // Todos los eventos del local se emiten a este room
+      socket.on('join_local', (localId) => {
+        socket.join(localId);
+        console.log(`Socket ${socket.id} joined room: ${localId}`);
+      });
+
+      socket.on('disconnect', () => {
+        console.log(`Socket disconnected: ${socket.id}`);
+      });
+    });
+  }
+
+  module.exports = initSocket;
+
+  NOTAS SOBRE LOS EVENTOS:
+
+  'join_local'      → Dirección: Cliente → Servidor
+                      Cuándo: Al abrir el panel admin o la tablet del cliente
+                      Payload: localId (string uuid)
+
+  'new_order'       → Dirección: Servidor → Clientes del room
+                      Cuándo: Se dispara en ConfirmOrderUseCase (#32)
+                      Payload: { orderId, customer, deliveryType, total, mesa }
+
+  'order_updated'   → Dirección: Servidor → Clientes del room
+                      Cuándo: Se dispara en UpdateOrderEstadoUseCase (#35)
+                      Payload: { orderId, nuevoEstado }
+
+  'mesa_updated'    → Dirección: Servidor → Clientes del room
+                      Cuándo: Al confirmar un pedido (mesa → ocupada) (#32)
+                              Al finalizar un pedido (mesa → disponible) (#35)
+                              Al cambiar manualmente (#17)
+                      Payload: { mesaId, estado_actual }
+
+  'new_reservation' → Dirección: Servidor → Clientes del room (opcional)
+                      Cuándo: En CreateReservacionUseCase (#36)
+                      Payload: { reservacionId, nombre_cliente, fecha, hora }
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 11 — PUNTO DE ENTRADA (src/app.js + server.js)
+════════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────
+  ARCHIVO: src/app.js
+  QUÉ ES: Monta Express, registra todas las rutas con sus dependencias inyectadas.
+────────────────────────────────────────
+
+  const express    = require('express');
+  const cors       = require('cors');
+  const helmet     = require('helmet');
+
+  const errorMiddleware = require('./api/middlewares/errorMiddleware');
+  const requestLogger   = require('./api/middlewares/requestLogger');
+
+  // Repositorios (Infraestructura)
+  const SupabaseOrderRepository    = require('./infrastructure/database/SupabaseOrderRepository');
+  const SupabaseMesaRepository     = require('./infrastructure/database/SupabaseMesaRepository');
+  const SupabaseProductRepository  = require('./infrastructure/database/SupabaseProductRepository');
+  const SupabaseUserRepository     = require('./infrastructure/database/SupabaseUserRepository');
+  const SupabaseLocalRepository    = require('./infrastructure/database/SupabaseLocalRepository');
+  const SupabaseCategoryRepository = require('./infrastructure/database/SupabaseCategoryRepository');
+  const SupabaseReservationRepository = require('./infrastructure/database/SupabaseReservationRepository');
+  const SupabaseCorteRepository    = require('./infrastructure/database/SupabaseCorteRepository');
+
+  // Casos de uso (se inyectan con sus repositorios)
+  const LoginUseCase               = require('./application/use-cases/auth/LoginUseCase');
+  const ConfirmOrderUseCase        = require('./application/use-cases/orders/ConfirmOrderUseCase');
+  const UpdateOrderEstadoUseCase   = require('./application/use-cases/orders/UpdateOrderEstadoUseCase');
+  const ListOrdersUseCase          = require('./application/use-cases/orders/ListOrdersUseCase');
+  const GetOrderUseCase            = require('./application/use-cases/orders/GetOrderUseCase');
+  // ... importar todos los demás casos de uso
+
+  // Controllers
+  const AuthController   = require('./api/controllers/AuthController');
+  const OrderController  = require('./api/controllers/OrderController');
+  const MesaController   = require('./api/controllers/MesaController');
+  // ... importar todos los demás controllers
+
+  // Rutas
+  const makeAuthRoutes   = require('./api/routes/authRoutes');
+  const makeOrderRoutes  = require('./api/routes/orderRoutes');
+  const makeMesaRoutes   = require('./api/routes/mesaRoutes');
+  // ... importar todas las demás rutas
+
+  function createApp(io) {  // io = instancia de Socket.IO
+    const app = express();
+
+    // Middlewares globales
+    app.use(helmet());
+    app.use(cors());
+    app.use(express.json());
+    app.use(requestLogger);
+
+    // Instanciar repositorios
+    const orderRepo       = new SupabaseOrderRepository();
+    const mesaRepo        = new SupabaseMesaRepository();
+    const productRepo     = new SupabaseProductRepository();
+    const userRepo        = new SupabaseUserRepository();
+    const localRepo       = new SupabaseLocalRepository();
+    const categoryRepo    = new SupabaseCategoryRepository();
+    const reservationRepo = new SupabaseReservationRepository();
+    const corteRepo       = new SupabaseCorteRepository();
+
+    // Instanciar casos de uso (inyección de dependencias)
+    const loginUseCase           = new LoginUseCase();
+    const confirmOrder           = new ConfirmOrderUseCase({ orderRepository: orderRepo, mesaRepository: mesaRepo, socketIO: io });
+    const updateOrderEstado      = new UpdateOrderEstadoUseCase({ orderRepository: orderRepo, mesaRepository: mesaRepo, socketIO: io });
+    const listOrders             = new ListOrdersUseCase({ orderRepository: orderRepo });
+    const getOrder               = new GetOrderUseCase({ orderRepository: orderRepo });
+    // ... instanciar todos los casos de uso
+
+    // Instanciar controllers
+    const authController  = new AuthController({ loginUseCase });
+    const orderController = new OrderController({ confirmOrderUseCase: confirmOrder, listOrdersUseCase: listOrders, getOrderUseCase: getOrder, updateOrderEstadoUseCase: updateOrderEstado });
+    const mesaController  = new MesaController({ /* inyectar use cases de mesas */ });
+    // ... instanciar todos los controllers
+
+    // Montar rutas
+    app.use('/api/auth',                              makeAuthRoutes(authController));
+    app.use('/api/orders',                            makeOrderRoutes(orderController));
+    app.use('/api/locales/:localId/mesas',            makeMesaRoutes(mesaController));
+    app.use('/api/locales/:localId/categorias',       /* makeCategoriaRoutes */);
+    app.use('/api/locales/:localId/productos',        /* makeProductoRoutes */);
+    app.use('/api/locales/:localId/cortes',           /* makeCorteRoutes */);
+    app.use('/api/users',                             /* makeUserRoutes */);
+    app.use('/api/locales',                           /* makeLocalRoutes */);
+    app.use('/api/reservaciones',                     /* makeReservacionRoutes */);
+
+    // Middleware de errores (SIEMPRE AL FINAL)
+    app.use(errorMiddleware);
+
+    return app;
+  }
+
+  module.exports = createApp;
+
+────────────────────────────────────────
+  ARCHIVO: server.js
+  QUÉ ES: El punto de entrada real. Crea el servidor HTTP + Socket.IO.
+────────────────────────────────────────
+
+  require('dotenv').config();
+  const http      = require('http');
+  const { Server } = require('socket.io');
+  const createApp  = require('./src/app');
+  const initSocket = require('./src/websocket/socketHandler');
+  const logger     = require('./src/infrastructure/logger/logger');
+
+  const PORT = process.env.PORT || 3000;
+
+  // 1. Crear servidor HTTP
+  const httpServer = http.createServer();
+
+  // 2. Crear instancia de Socket.IO sobre el servidor HTTP
+  const io = new Server(httpServer, {
+    cors: { origin: '*', methods: ['GET', 'POST'] }
+  });
+
+  // 3. Inicializar handlers de WebSocket
+  initSocket(io);
+
+  // 4. Crear Express y montarlo en el servidor HTTP
+  const app = createApp(io);
+  httpServer.on('request', app);
+
+  // 5. Arrancar
+  httpServer.listen(PORT, () => {
+    logger.info(`Servidor corriendo en puerto ${PORT}`);
+    logger.info(`Ambiente: ${process.env.NODE_ENV}`);
+  });
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 12 — DOCKER
+════════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────
+  ARCHIVO: Dockerfile
+────────────────────────────────────────
+
+  FROM node:20-alpine
+  WORKDIR /app
+  COPY package*.json ./
+  RUN npm ci --only=production
+  COPY src/ ./src/
+  COPY server.js ./
+  EXPOSE 3000
+  CMD ["node", "server.js"]
+
+────────────────────────────────────────
+  ARCHIVO: docker-compose.yml
+────────────────────────────────────────
+
+  version: '3.9'
+  services:
+    api:
+      build: .
+      ports:
+        - "3000:3000"
+      environment:
+        NODE_ENV: development
+        PORT: 3000
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+        JWT_SECRET: ${JWT_SECRET}
+      volumes:
+        - ./src:/app/src
+        - ./server.js:/app/server.js
+      restart: unless-stopped
+
+  # Para correr: docker-compose up --build
+  # Para detener: docker-compose down
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 13 — DEPENDENCIAS (package.json)
+════════════════════════════════════════════════════════════════════════════════
+
+  npm install express @supabase/supabase-js zod jsonwebtoken winston helmet cors dotenv socket.io express-rate-limit
+
+  npm install --save-dev jest supertest nodemon
+
+────────────────────────────────────────
+  Scripts en package.json:
+────────────────────────────────────────
+
+  "scripts": {
+    "start":          "node server.js",
+    "dev":            "nodemon server.js",
+    "test":           "jest --forceExit",
+    "test:watch":     "jest --watch",
+    "test:coverage":  "jest --coverage"
+  }
+
+
+════════════════════════════════════════════════════════════════════════════════
+  PASO 14 — TESTS ESENCIALES (tests/)
+════════════════════════════════════════════════════════════════════════════════
+
+Al menos escribe estos tests para los flujos más críticos del restaurante.
+
+────────────────────────────────────────
+  ARCHIVO: tests/unit/domain/Order.test.js
+────────────────────────────────────────
+
+  const Order = require('../../../src/domain/entities/Order');
+
+  describe('Order Entity', () => {
+    const mockItems = [
+      { subtotal: 170 },  // 2 tacos × 85
+      { subtotal: 120 }
+    ];
+
+    test('avanza de entrante a cocina', () => {
+      const o = new Order({ tableId: 't1', items: mockItems, total: 290 });
+      o.avanzarEstado();
+      expect(o.estado).toBe('cocina');
+    });
+
+    test('no puede avanzar desde finalizado', () => {
+      const o = new Order({ tableId: 't1', items: mockItems, total: 290, estado: 'finalizado' });
+      expect(() => o.avanzarEstado()).toThrow();
+    });
+
+    test('solo cancela si está en entrante', () => {
+      const o = new Order({ tableId: 't1', items: mockItems, total: 290, estado: 'cocina' });
+      expect(() => o.cancelar()).toThrow('Solo se puede cancelar un pedido entrante');
+    });
+
+    test('calcula el total correctamente', () => {
+      const o = new Order({ tableId: 't1', items: mockItems, total: 290 });
+      expect(o.calcularTotal()).toBe(290);
+    });
+  });
+
+────────────────────────────────────────
+  ARCHIVO: tests/unit/use-cases/ConfirmOrderUseCase.test.js
+────────────────────────────────────────
+
+  const ConfirmOrderUseCase = require('../../../src/application/use-cases/orders/ConfirmOrderUseCase');
+
+  describe('ConfirmOrderUseCase', () => {
+    const mockOrderRepo = { save: jest.fn() };
+    const mockMesaRepo  = { findById: jest.fn(), updateEstado: jest.fn() };
+    const mockIO        = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+
+    const useCase = new ConfirmOrderUseCase({
+      orderRepository: mockOrderRepo,
+      mesaRepository: mockMesaRepo,
+      socketIO: mockIO
+    });
+
+    beforeEach(() => jest.clearAllMocks());
+
+    test('crea un pedido y emite WebSocket', async () => {
+      mockMesaRepo.findById.mockResolvedValue({ id: 'mesa-1', status: 'disponible' });
+      mockOrderRepo.save.mockResolvedValue({ id: 'orden-1', localId: 'local-1' });
+
+      await useCase.execute({
+        localId: 'local-1',
+        deliveryType: 'local',
+        customer: { name: 'Juan', phone: '5551234567', table: 'mesa-1' },
+        cart: [{ id: 'p1', quantity: 2, subtotal: 170 }],
+        total: 170
+      });
+
+      expect(mockOrderRepo.save).toHaveBeenCalledTimes(1);
+      expect(mockMesaRepo.updateEstado).toHaveBeenCalledWith('mesa-1', 'ocupada');
+      expect(mockIO.emit).toHaveBeenCalledWith('new_order', expect.any(Object));
+    });
+
+    test('falla si la mesa no existe', async () => {
+      mockMesaRepo.findById.mockResolvedValue(null);
+      await expect(useCase.execute({
+        localId: 'local-1', deliveryType: 'local',
+        customer: { name: 'Ana', phone: '5551234567', table: 'mesa-inexistente' },
+        cart: [], total: 0
+      })).rejects.toThrow('Mesa no encontrada');
+    });
+  });
+
+────────────────────────────────────────
+  ARCHIVO: tests/e2e/orders.e2e.test.js
+────────────────────────────────────────
+
+  const request = require('supertest');
+  const createApp = require('../../src/app');
+
+  describe('Orders API E2E', () => {
+    const mockIO = { to: () => ({ emit: () => {} }) };
+    const app = createApp(mockIO);
+
+    test('POST /api/orders/confirm requiere body válido', async () => {
+      const res = await request(app)
+        .post('/api/orders/confirm')
+        .send({ localId: 'no-es-uuid' }); // body inválido
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('GET /api/orders requiere autenticación', async () => {
+      const res = await request(app).get('/api/orders');
+      expect(res.status).toBe(401);
+    });
+  });
+
+
+════════════════════════════════════════════════════════════════════════════════
+  ORDEN DE IMPLEMENTACIÓN RECOMENDADA
+════════════════════════════════════════════════════════════════════════════════
+
+Sigue este orden para tener siempre algo funcionando en cada sesión:
+
+  SEMANA 1 — Base funcional
+  ─────────────────────────
+  [ ] 1. Crear estructura de carpetas
+  [ ] 2. Instalar dependencias (npm install)
+  [ ] 3. Configurar .env y supabase.js
+  [ ] 4. Configurar logger.js
+  [ ] 5. Crear entidades (Order, Mesa, Reservation, Product, User)
+  [ ] 6. Crear contratos de repositorios (los archivos base con throw)
+  [ ] 7. Crear middlewares: authMiddleware, roleMiddleware, localGuard,
+         validate, errorMiddleware, requestLogger
+  [ ] 8. Crear SupabaseMesaRepository (primer repositorio completo)
+  [ ] 9. Crear ListMesasUseCase
+  [ ] 10. Crear MesaController
+  [ ] 11. Crear mesaRoutes.js
+  [ ] 12. Conectar en app.js y levantar el servidor
+  [ ] 13. Probar GET /api/locales/:localId/mesas con Postman/Insomnia
+          → Primer endpoint funcionando con arquitectura completa
+
+  SEMANA 2 — Auth + Pedidos (lo más crítico)
+  ──────────────────────────────────────────
+  [ ] 14. LoginUseCase + AuthController + authRoutes (#01, #02, #03)
+  [ ] 15. SupabaseOrderRepository
+  [ ] 16. ConfirmOrderUseCase (incluye WebSocket)
+  [ ] 17. UpdateOrderEstadoUseCase (incluye WebSocket)
+  [ ] 18. OrderController + orderRoutes (#32, #33, #34, #35)
+  [ ] 19. socketHandler.js + server.js con Socket.IO
+  [ ] 20. Probar flujo completo: tablet confirma pedido → aparece en Kanban del admin
+
+  SEMANA 3 — Menú + CRUD completo
+  ─────────────────────────────────
+  [ ] 21. SupabaseProductRepository + SupabaseCategoryRepository
+  [ ] 22. Todos los use cases de categorías (#19-22)
+  [ ] 23. Todos los use cases de productos (#23-31)
+  [ ] 24. Controllers y rutas de categorías y productos
+
+  SEMANA 4 — Usuarios, Locales, Reservaciones, Cortes
+  ─────────────────────────────────────────────────────
+  [ ] 25. SupabaseUserRepository + CreateUserUseCase (crea en Supabase Auth + tabla perfiles)
+  [ ] 26. UserController + userRoutes (#04-08)
+  [ ] 27. LocalController + localRoutes (#09-13)
+  [ ] 28. ReservationRepository + use cases + rutas (#36-38)
+  [ ] 29. CorteRepository + GenerarCorteUseCase + rutas (#39-41)
+  [ ] 30. Tests unitarios de las entidades y use cases críticos
+  [ ] 31. Tests E2E de los endpoints principales
+  [ ] 32. Dockerfile y docker-compose.yml
+  [ ] 33. Revisión final de permisos y seguridad
+
+
+════════════════════════════════════════════════════════════════════════════════
+  RESPUESTA ESTÁNDAR DE LA API
+════════════════════════════════════════════════════════════════════════════════
+
+Todas las respuestas deben seguir este formato consistente:
+
+  Éxito en listado:
+  {
+    "success": true,
+    "data": [...],
+    "meta": {
+      "total": 48,
+      "page": 1,
+      "limit": 30,
+      "totalPages": 2,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+
+  Éxito en objeto único:
+  {
+    "success": true,
+    "data": { ... }
+  }
+
+  Éxito en creación (201):
+  {
+    "success": true,
+    "data": { "id": "uuid-creado", ... }
+  }
+
+  Error de validación (400):
+  {
+    "success": false,
+    "errors": [
+      { "field": "cart", "message": "El carrito no puede estar vacío" },
+      { "field": "customer.phone", "message": "Teléfono inválido" }
+    ]
+  }
+
+  Error de negocio (400):
+  {
+    "success": false,
+    "error": "Solo se puede cancelar un pedido entrante"
+  }
+
+  Error de autenticación (401):
+  {
+    "success": false,
+    "error": "Token requerido"
+  }
+
+  Error de permisos (403):
+  {
+    "success": false,
+    "error": "No tienes acceso a este local"
+  }
+
+  Error de servidor (500):
+  {
+    "success": false,
+    "error": "Error interno del servidor"
+  }
+
+
+================================================================================
+  FIN DEL DOCUMENTO
+  Stack: Node.js 20 + Express + Supabase + Socket.IO + Docker + Winston + Zod + Jest
+  Arquitectura: Clean Architecture (4 capas) + Inyección de Dependencias
+  Endpoints: 41 HTTP + 5 eventos WebSocket
+================================================================================

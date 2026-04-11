@@ -30,17 +30,6 @@ const AdminMesas = () => {
     fetchMesas();
   }, []);
 
-  const parseNombreODescripcion = (nombreONumero) => {
-    if (!nombreONumero) return { nombre: '', descripcion: '' };
-    const parts = nombreONumero.split(' - ');
-    if (parts.length > 1) {
-      const nombre = parts[0];
-      const descripcion = parts.slice(1).join(' - ');
-      return { nombre, descripcion };
-    }
-    return { nombre: nombreONumero, descripcion: '' };
-  };
-
   const handleAddMesa = async () => {
     const { value: formValues } = await Swal.fire({
       title: 'Añadir Nueva Mesa',
@@ -81,9 +70,10 @@ const AdminMesas = () => {
         }
 
         return {
-          nombre_o_numero: desc ? `${nombre} - ${desc}` : nombre,
+          nombre_o_numero: nombre,
+          descripcion: desc,
           capacidad: parseInt(capacidad, 10),
-          estadoActual: 'disponible'
+          estado_actual: 'disponible'
         };
       }
     });
@@ -100,18 +90,19 @@ const AdminMesas = () => {
   };
 
   const handleEditMesa = async (mesa) => {
-    const parsed = parseNombreODescripcion(mesa.nombre_o_numero || mesa.nombreONumero);
+    const nombreDef = mesa.nombre_o_numero || mesa.nombreONumero || '';
+    const descDef = mesa.descripcion || '';
     const { value: formValues } = await Swal.fire({
       title: 'Editar Mesa',
       html: `
         <div style="text-align: left;">
           <div class="mesa-form-group">
             <label>Nombre o Número *</label>
-            <input id="swal-input-nombre" class="swal2-input mesa-input" style="margin: 0;" value="${parsed.nombre}" required>
+            <input id="swal-input-nombre" class="swal2-input mesa-input" style="margin: 0;" value="${nombreDef}" required>
           </div>
           <div class="mesa-form-group">
             <label>Ubicación / Descripción</label>
-            <input id="swal-input-desc" class="swal2-input mesa-input" style="margin: 0;" value="${parsed.descripcion}">
+            <input id="swal-input-desc" class="swal2-input mesa-input" style="margin: 0;" value="${descDef}">
           </div>
           <div class="mesa-form-group">
             <label>Capacidad (personas) *</label>
@@ -140,7 +131,8 @@ const AdminMesas = () => {
         }
 
         return {
-          nombre_o_numero: desc ? `${nombre} - ${desc}` : nombre,
+          nombre_o_numero: nombre,
+          descripcion: desc,
           capacidad: parseInt(capacidad, 10)
         };
       }
@@ -176,7 +168,8 @@ const AdminMesas = () => {
   };
 
   const handleToggleEstado = async (mesa) => {
-    const nuevoEstado = mesa.estado_actual === 'ocupada' ? 'disponible' : 'ocupada';
+    const estado = mesa.estadoActual || mesa.estado_actual;
+    const nuevoEstado = estado === 'ocupada' ? 'disponible' : 'ocupada';
     try {
       await apiClient.patch(`/locales/${LOCAL_ID}/mesas/${mesa.id}/estado`, { estado_actual: nuevoEstado });
       fetchMesas();
@@ -186,7 +179,7 @@ const AdminMesas = () => {
   };
 
   const filteredMesas = mesas.filter(m => {
-    const text = (m.nombre_o_numero || m.nombreONumero || '').toLowerCase();
+    const text = (m.nombre_o_numero || m.nombreONumero || '').toLowerCase() + ' ' + (m.descripcion || '').toLowerCase();
     return text.includes(searchTerm.toLowerCase());
   });
 
@@ -228,20 +221,21 @@ const AdminMesas = () => {
           ) : (
             <div className="mesas-grid">
               {filteredMesas.map(mesa => {
-                const parsed = parseNombreODescripcion(mesa.nombre_o_numero || mesa.nombreONumero);
-                const isOcupada = mesa.estado_actual === 'ocupada';
+                const nombreItem = mesa.nombre_o_numero || mesa.nombreONumero;
+                const estado = mesa.estadoActual || mesa.estado_actual;
+                const isOcupada = estado === 'ocupada';
 
                 return (
-                  <div key={mesa.id} className={`mesa-card estado-${mesa.estado_actual}`}>
+                  <div key={mesa.id} className={`mesa-card estado-${estado}`}>
                     <div className="mesa-header">
                       <div className="mesa-title-wrapper">
                         <MapPin className="mesa-icon" size={20} />
                         <div className="mesa-info">
-                          <h3>{parsed.nombre}</h3>
-                          {parsed.descripcion && <span className="mesa-desc">{parsed.descripcion}</span>}
+                          <h3>{nombreItem}</h3>
+                          {mesa.descripcion && <span className="mesa-desc">{mesa.descripcion}</span>}
                         </div>
                       </div>
-                      <span className={`mesa-state-pill ${mesa.estado_actual}`}>
+                      <span className={`mesa-state-pill ${estado}`}>
                         {isOcupada ? 'Ocupada' : 'Disponible'}
                       </span>
                     </div>
@@ -264,7 +258,7 @@ const AdminMesas = () => {
                         <button className="btn-icon-mesa edit" title="Editar mesa" onClick={() => handleEditMesa(mesa)}>
                           <Edit2 size={16} />
                         </button>
-                        <button className="btn-icon-mesa delete" title="Eliminar mesa" onClick={() => handleDeleteMesa(mesa.id, parsed.nombre)}>
+                        <button className="btn-icon-mesa delete" title="Eliminar mesa" onClick={() => handleDeleteMesa(mesa.id, nombreItem)}>
                           <Trash2 size={16} />
                         </button>
                       </div>

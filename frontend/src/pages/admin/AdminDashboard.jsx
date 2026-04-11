@@ -33,7 +33,7 @@ const AdminDashboard = () => {
         setMesasDict(mDict);
 
         if (response.data && response.data.data) {
-          const activeOrders = response.data.data.filter(o => o.estado !== 'finalizado');
+          const activeOrders = response.data.data.filter(o => !['cancelado', 'rechazado'].includes(o.estado));
           setOrders(activeOrders);
         }
       } catch (error) {
@@ -75,12 +75,13 @@ const AdminDashboard = () => {
   };
 
   const states = [
-    { id: 'entrante', label: 'Entrantes', icon: Bell },
-    { id: 'cocina',   label: 'En Cocina', icon: Play },
-    { id: 'listo',    label: 'Listos',    icon: CheckCircle },
+    { id: 'entrante',   label: 'Entrantes',  icon: Bell },
+    { id: 'cocina',     label: 'En Cocina',  icon: Play },
+    { id: 'listo',      label: 'Listos',     icon: CheckCircle },
+    { id: 'finalizado', label: 'Entregados', icon: Eye },
   ];
 
-  // Avance de estado — finalizado va al Historial (se saca del Kanban)
+  // Avance de estado
   const advanceOrder = async (order) => {
     let nextState = '';
     if (order.estado === 'cocina')  nextState = 'listo';
@@ -90,11 +91,6 @@ const AdminDashboard = () => {
     setOrders(prev => prev.map(o => o.id === order.id ? { ...o, estado: nextState } : o));
     try {
       await apiClient.patch(`/orders/${order.id}/estado`, { estado: nextState });
-      if (nextState === 'finalizado') {
-        setTimeout(() => {
-          setOrders(prev => prev.filter(o => o.id !== order.id));
-        }, 600);
-      }
     } catch (e) {
       console.error('Error actualizando pedido', e);
     }
@@ -179,6 +175,10 @@ const AdminDashboard = () => {
                       {state.id === 'entrante' ? (
                         <button className="btn-siguiente btn-atender" onClick={() => handleViewDetails(order.id)}>
                           <Eye size={15} /> Atender Pedido
+                        </button>
+                      ) : state.id === 'finalizado' ? (
+                        <button className="btn-detalle" style={{ flex: 1 }} onClick={() => handleViewDetails(order.id)}>
+                          Historial Detalles
                         </button>
                       ) : (
                         <>

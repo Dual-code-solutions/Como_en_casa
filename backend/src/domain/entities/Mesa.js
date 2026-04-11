@@ -8,10 +8,11 @@
 class Mesa {
   static ESTADOS = ['disponible', 'ocupada'];
 
-  constructor({ id, localId, nombreONumero, capacidad, estadoActual = 'disponible', creadoAt }) {
+  constructor({ id, localId, nombreONumero, descripcion, capacidad, estadoActual = 'disponible', creadoAt }) {
     this.id             = id;
     this.localId        = localId;
     this.nombreONumero  = nombreONumero;
+    this.descripcion    = descripcion;
     this.capacidad      = capacidad;
     this.estadoActual   = estadoActual;
     this.creadoAt       = creadoAt || new Date();
