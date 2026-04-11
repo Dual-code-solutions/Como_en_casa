@@ -9,8 +9,11 @@ class CreateUserUseCase {
   async execute({ email, password, localId, rol, primerNombre,
                   segundoNombre, primerApellido, segundoApellido,
                   telefonoContacto }) {
-    // Validar rol
-    User.validarRol(rol);
+    // Normalizar rol antes de validar (el frontend envía 'dueno' sin ñ)
+    const rolNorm = rol === 'dueno' ? 'dueño' : rol;
+
+    // Validar rol contra la entidad de dominio
+    User.validarRol(rolNorm);
 
     // Verificar que no exista un usuario con ese email
     const existente = await this.userRepo.findByEmail(email);
@@ -18,7 +21,7 @@ class CreateUserUseCase {
 
     // Crear usuario en Supabase Auth + tabla perfiles
     return this.userRepo.create({
-      email, password, localId, rol,
+      email, password, localId, rol: rolNorm,
       primerNombre, segundoNombre,
       primerApellido, segundoApellido,
       telefonoContacto

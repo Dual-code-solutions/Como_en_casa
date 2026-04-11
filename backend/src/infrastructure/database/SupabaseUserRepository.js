@@ -32,36 +32,45 @@ class SupabaseUserRepository extends UserRepository {
   }
 
   async create(userData) {
+    // Normalizar rol: el ENUM de Supabase usa 'dueño' con ñ
+    const rolNormalizado = userData.rol === 'dueno' ? 'dueño' : userData.rol;
+
     // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email:             userData.email,
       password:          userData.password,
       email_confirm:     true,
-      user_metadata:     { rol: userData.rol }
+      user_metadata:     { rol: rolNormalizado }
     });
 
     if (authError) throw new Error(`Error creando usuario auth: ${authError.message}`);
 
-    // 2. Insertar perfil vinculado al mismo ID
-    const { data: perfil, error: perfilError } = await supabase
-      .from('perfiles')
-      .insert({
-        id:                 authData.user.id,
-        id_local:           userData.localId,
-        rol:                userData.rol,
-        primer_nombre:      userData.primerNombre,
-        segundo_nombre:     userData.segundoNombre || null,
-        primer_apellido:    userData.primerApellido,
-        segundo_apellido:   userData.segundoApellido || null,
-        telefono_contacto:  userData.telefonoContacto || null,
-        estado_cuenta:      true
-      })
-      .select()
-      .single();
+    // 2. Insertar perfil — incluye email si la columna ya existe en perfiles
+    const perfilData = {
+      id:                 authData.user.id,
+      id_local:           userData.localId,
+      rol:                rolNormalizado,
+      email:              userData.email,
+      primer_nombre:      userData.primerNombre,
+      segundo_nombre:     userData.segundoNombre || null,
+      primer_apellido:    userData.primerApellido,
+      segundo_apellido:   userData.segundoApellido || null,
+      telefono_contacto:  userData.telefonoContacto || null,
+      estado_cuenta:      true
+    };
 
-    if (perfilError) throw new Error(`Error creando perfil: ${perfilError.message}`);
+    let perfilResult = await supabase.from('perfiles').insert(perfilData).select().single();
 
-    return this._toEntity({ ...perfil, email: userData.email });
+    // Si falla por columna email inexistente, reintentar sin ella
+    if (perfilResult.error && perfilResult.error.message.includes('email')) {
+      console.warn('[UserRepo] Columna email no existe en perfiles, insertando sin ella.');
+      const { email: _ignored, ...perfilSinEmail } = perfilData;
+      perfilResult = await supabase.from('perfiles').insert(perfilSinEmail).select().single();
+    }
+
+    if (perfilResult.error) throw new Error(`Error creando perfil: ${perfilResult.error.message}`);
+
+    return this._toEntity({ ...perfilResult.data, email: userData.email });
   }
 
   async update(id, data) {
@@ -111,13 +120,13 @@ class SupabaseUserRepository extends UserRepository {
       id:               row.id,
       localId:          row.id_local,
       rol:              row.rol,
+      email:            row.email || null,
       primerNombre:     row.primer_nombre,
       segundoNombre:    row.segundo_nombre,
       primerApellido:   row.primer_apellido,
       segundoApellido:  row.segundo_apellido,
       telefonoContacto: row.telefono_contacto,
       estadoCuenta:     row.estado_cuenta,
-      email:            row.email || null,
       fechaRegistro:    row.fecha_registro
     });
   }

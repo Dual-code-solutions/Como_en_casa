@@ -14,7 +14,7 @@ const createUserSchema = z.object({
     .optional()
     .nullable(),
   rol: z
-    .enum(['dueño', 'admin'], { required_error: 'El rol es requerido' }),
+    .enum(['dueño', 'dueno', 'admin'], { required_error: 'El rol es requerido' }),
   primerNombre: z
     .string({ required_error: 'El primer nombre es requerido' })
     .min(2, 'Nombre muy corto'),
@@ -31,9 +31,10 @@ const createUserSchema = z.object({
     .nullable(),
   telefonoContacto: z
     .string()
-    .min(10, 'Teléfono debe tener al menos 10 dígitos')
     .optional()
     .nullable()
+    .transform(v => v === '' ? null : v)
+    .refine(v => v === null || v === undefined || v.length >= 10, 'Teléfono debe tener al menos 10 dígitos')
 });
 
 const updateUserSchema = z.object({
@@ -55,9 +56,10 @@ const updateUserSchema = z.object({
     .nullable(),
   telefonoContacto: z
     .string()
-    .min(10, 'Teléfono debe tener al menos 10 dígitos')
     .optional()
     .nullable()
+    .transform(v => v === '' ? null : v)
+    .refine(v => v === null || v === undefined || v.length >= 10, 'Teléfono debe tener al menos 10 dígitos')
 });
 
 module.exports = { createUserSchema, updateUserSchema };

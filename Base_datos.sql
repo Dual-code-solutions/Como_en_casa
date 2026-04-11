@@ -56,10 +56,10 @@ CREATE TABLE public.mesas (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   id_local uuid NOT NULL,
   nombre_o_numero text NOT NULL,
-  descripcion text,
   capacidad integer NOT NULL,
   estado_actual text DEFAULT 'disponible'::text,
   creado_at timestamp with time zone DEFAULT now(),
+  descripcion text,
   CONSTRAINT mesas_pkey PRIMARY KEY (id),
   CONSTRAINT mesas_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locales(id)
 );
@@ -93,6 +93,7 @@ CREATE TABLE public.perfiles (
   telefono_contacto text,
   estado_cuenta boolean DEFAULT true,
   fecha_registro timestamp with time zone DEFAULT now(),
+  email text,
   CONSTRAINT perfiles_pkey PRIMARY KEY (id),
   CONSTRAINT perfiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
   CONSTRAINT perfiles_id_local_fkey FOREIGN KEY (id_local) REFERENCES public.locales(id)

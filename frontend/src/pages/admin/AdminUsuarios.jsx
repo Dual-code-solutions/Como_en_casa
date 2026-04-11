@@ -46,13 +46,13 @@ const AdminUsuarios = () => {
     isEdit: true, 
     data: {
       id: u.id,
-      email: u.auth_email || '',
+      email: u.email || '',
       rol: u.rol || 'admin',
-      primerNombre: u.primer_nombre || '',
-      segundoNombre: u.segundo_nombre || '',
-      primerApellido: u.primer_apellido || '',
-      segundoApellido: u.segundo_apellido || '',
-      telefonoContacto: u.telefono_contacto || ''
+      primerNombre: u.primerNombre || u.primer_nombre || '',
+      segundoNombre: u.segundoNombre || u.segundo_nombre || '',
+      primerApellido: u.primerApellido || u.primer_apellido || '',
+      segundoApellido: u.segundoApellido || u.segundo_apellido || '',
+      telefonoContacto: u.telefonoContacto || u.telefono_contacto || ''
     } 
   });
 
@@ -75,10 +75,12 @@ const AdminUsuarios = () => {
   };
 
   const handleToggleStatus = async (user) => {
-    const accion = user.estado === 'activo' ? 'deshabilitar' : 'activar';
+    const estaActivo = user.estadoCuenta !== false;
+    const accion = estaActivo ? 'deshabilitar' : 'activar';
+    const nombre = user.primerNombre || user.primer_nombre || 'este usuario';
     const isConf = await showConfirm(
       `¿Cambiar estado?`,
-      `¿Seguro que deseas ${accion} al usuario ${user.primer_nombre}?`,
+      `¿Seguro que deseas ${accion} a ${nombre}?`,
       'Sí, aplicar',
       'warning'
     );
@@ -116,94 +118,148 @@ const AdminUsuarios = () => {
             </div>
           ) : (
             <div className="historial-list">
-              {users.map(u => (
-                <div key={u.id} className={`historial-row ${u.estado === 'inactivo' ? 'row-cancelado' : ''}`}>
+              {users.map(u => {
+                const nombre = `${u.primerNombre || u.primer_nombre || ''} ${u.primerApellido || u.primer_apellido || ''}`.trim() || 'Sin nombre';
+                const email = u.email || 'Sin correo';
+                const telefono = u.telefonoContacto || u.telefono_contacto || 'Sin Tel.';
+                const activo = u.estadoCuenta !== false;
+                return (
+                <div key={u.id} className={`historial-row ${!activo ? 'row-cancelado' : ''}`}>
                   <div className="row-main" style={{ cursor: 'default' }}>
                     <div className="row-left">
                       <span className={`row-estado-badge ${u.rol === 'dueno' ? 'row-badge-finalizado' : 'row-badge-preparando'}`}>
                         {u.rol?.toUpperCase()}
                       </span>
                       <div className="row-info">
-                        <p className="row-client">{u.primer_nombre} {u.primer_apellido}</p>
+                        <p className="row-client">{nombre}</p>
                         <p className="row-meta">
-                          {u.auth_email} &nbsp;·&nbsp; {u.telefono_contacto || 'Sin Tel.'}
+                          {email} &nbsp;·&nbsp; {telefono}
                         </p>
                       </div>
                     </div>
                     <div className="row-right" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: u.estado === 'activo' ? '#10b981' : '#dc2626', marginRight: '1rem', fontWeight: 600 }}>
-                        {u.estado}
+                      <span style={{ fontSize: '0.8rem', color: activo ? '#10b981' : '#dc2626', marginRight: '1rem', fontWeight: 600 }}>
+                        {activo ? 'Activo' : 'Inactivo'}
                       </span>
                       <button className="btn-icon edit" onClick={() => handleOpenEdit(u)} title="Editar Información">
                         <Edit2 size={16} />
                       </button>
-                      <button className={`btn-icon ${u.estado === 'activo' ? 'delete' : 'edit'}`} onClick={() => handleToggleStatus(u)} title={u.estado === 'activo' ? "Deshabilitar acceso" : "Reactivar acceso"}>
-                        {u.estado === 'activo' ? <UserX size={16} /> : <UserCheck size={16} />}
+                      <button className={`btn-icon ${activo ? 'delete' : 'edit'}`} onClick={() => handleToggleStatus(u)} title={activo ? "Deshabilitar acceso" : "Reactivar acceso"}>
+                        {activo ? <UserX size={16} /> : <UserCheck size={16} />}
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
         {modalData.isOpen && (
           <div className="modal-overlay-admin" onClick={() => setModalData({ ...modalData, isOpen: false })}>
-            <div className="modal-content-admin" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-content-admin" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header-admin">
                 <h2>{modalData.isEdit ? 'Editar Usuario' : 'Añadir Usuario'}</h2>
                 <button className="btn-close" onClick={() => setModalData({ ...modalData, isOpen: false })}><X size={22} /></button>
               </div>
               <form onSubmit={handleSave}>
-                <div className="modal-body-admin" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label>Rol de Usuario *</label>
-                    <select 
-                      value={modalData.data.rol} 
-                      onChange={e => setModalData(p => ({ ...p, data: { ...p.data, rol: e.target.value } }))}
-                      className="ajustes-field input"
-                    >
-                      <option value="admin">Administrador (Cajero)</option>
-                      <option value="dueno">Dueño (Sistema Gral)</option>
-                    </select>
-                  </div>
+                <div className="modal-body-admin" style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
 
-                  <div className="form-group">
-                    <label>Correo Electrónico *</label>
-                    <input 
-                      type="email" 
-                      required 
-                      value={modalData.data.email} 
-                      onChange={e => setModalData(p => ({ ...p, data: { ...p.data, email: e.target.value } }))}
-                      disabled={modalData.isEdit}
-                    />
-                  </div>
-                  {!modalData.isEdit && (
-                    <div className="form-group">
-                      <label>Contraseña Temporal *</label>
-                      <input 
-                        type="text" 
-                        required 
-                        value={modalData.data.password} 
-                        onChange={e => setModalData(p => ({ ...p, data: { ...p.data, password: e.target.value } }))}
-                      />
+                  {/* ── Acceso ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#8B4513', margin: 0 }}>Acceso al sistema</p>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Rol de Usuario *</label>
+                      <select
+                        value={modalData.data.rol}
+                        onChange={e => setModalData(p => ({ ...p, data: { ...p.data, rol: e.target.value } }))}
+                        className="ajustes-field input"
+                      >
+                        <option value="admin">Administrador (Cajero)</option>
+                        <option value="dueno">Dueño (Sistema Gral)</option>
+                      </select>
                     </div>
-                  )}
 
-                  <div className="form-group">
-                    <label>Primer Nombre *</label>
-                    <input type="text" required value={modalData.data.primerNombre} onChange={e => setModalData(p => ({ ...p, data: { ...p.data, primerNombre: e.target.value } }))} />
-                  </div>
-                  <div className="form-group">
-                    <label>Primer Apellido *</label>
-                    <input type="text" required value={modalData.data.primerApellido} onChange={e => setModalData(p => ({ ...p, data: { ...p.data, primerApellido: e.target.value } }))} />
+                    <div style={{ display: 'grid', gridTemplateColumns: modalData.isEdit ? '1fr' : '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Correo Electrónico *</label>
+                        <input
+                          type="email" required
+                          value={modalData.data.email}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, email: e.target.value } }))}
+                          disabled={modalData.isEdit}
+                          placeholder="correo@ejemplo.com"
+                        />
+                      </div>
+                      {!modalData.isEdit && (
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Contraseña Temporal *</label>
+                          <input
+                            type="text" required
+                            value={modalData.data.password}
+                            onChange={e => setModalData(p => ({ ...p, data: { ...p.data, password: e.target.value } }))}
+                            placeholder="Ej: Clave2024"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label>Teléfono (Opcional)</label>
-                    <input type="tel" value={modalData.data.telefonoContacto} onChange={e => setModalData(p => ({ ...p, data: { ...p.data, telefonoContacto: e.target.value } }))} />
+                  <hr style={{ border: 'none', borderTop: '1px solid #f0e8df', margin: 0 }} />
+
+                  {/* ── Datos personales ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#8B4513', margin: 0 }}>Datos personales</p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Primer Nombre *</label>
+                        <input type="text" required value={modalData.data.primerNombre}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, primerNombre: e.target.value } }))}
+                          placeholder="Ej: Juan"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          Segundo Nombre <em style={{ color: '#b0a097', fontStyle: 'normal', fontSize: '0.75rem' }}>Opcional</em>
+                        </label>
+                        <input type="text" value={modalData.data.segundoNombre}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, segundoNombre: e.target.value } }))}
+                          placeholder="Ej: Carlos"
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Primer Apellido *</label>
+                        <input type="text" required value={modalData.data.primerApellido}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, primerApellido: e.target.value } }))}
+                          placeholder="Ej: García"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          Segundo Apellido <em style={{ color: '#b0a097', fontStyle: 'normal', fontSize: '0.75rem' }}>Opcional</em>
+                        </label>
+                        <input type="text" value={modalData.data.segundoApellido}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, segundoApellido: e.target.value } }))}
+                          placeholder="Ej: López"
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          Teléfono <em style={{ color: '#b0a097', fontStyle: 'normal', fontSize: '0.75rem' }}>Opcional</em>
+                        </label>
+                        <input type="tel" value={modalData.data.telefonoContacto}
+                          onChange={e => setModalData(p => ({ ...p, data: { ...p.data, telefonoContacto: e.target.value } }))}
+                          placeholder="Ej: 5512345678"
+                        />
+                      </div>
+                    </div>
                   </div>
+
                 </div>
                 <div className="modal-footer-admin">
                   <button type="button" className="btn-secondary" onClick={() => setModalData({ ...modalData, isOpen: false })}>Cancelar</button>
@@ -219,3 +275,4 @@ const AdminUsuarios = () => {
 };
 
 export default AdminUsuarios;
+
