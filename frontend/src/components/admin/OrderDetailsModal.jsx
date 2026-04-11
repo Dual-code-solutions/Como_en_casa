@@ -8,15 +8,7 @@ const PRESETS = [10, 15, 20, 30, 45];
 
 const LOCAL_ID = '02ef18a9-62aa-4fcd-98ee-1134e4aaf197';
 
-const modalidadLabel = (m, mesaId, nombreMesa) => {
-  if (m === 'local') {
-    if (nombreMesa) return `En Local · ${nombreMesa}`;
-    if (mesaId) return `En Local · Mesa (ID: ${String(mesaId).slice(-4)})`;
-    return 'En Local';
-  }
-  if (m === 'domicilio') return 'A Domicilio';
-  return 'Para Llevar';
-};
+// Already unused as flat string — replaced by inline JSX block below
 
 const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
   const [order, setOrder] = useState(null);
@@ -48,6 +40,7 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
             const objMesa = mesas.find(m => m.id === data.mesaId);
             if (objMesa) {
               data.nombreMesa = objMesa.nombre_o_numero || objMesa.nombreONumero;
+              data.descripcionMesa = objMesa.descripcion || '';
             }
           } catch(e) {
             console.error('Error fetching mesas mapping', e);
@@ -159,7 +152,22 @@ const OrderDetailsModal = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
                   <MapPin size={18} className="info-icon" />
                   <div>
                     <p className="info-label">Modalidad</p>
-                    <p className="info-value">{modalidadLabel(order.modalidad, order.mesaId, order.nombreMesa)}</p>
+                    {/* Nivel 1: Tipo de orden */}
+                    <p className="info-value modal-tipo-orden">
+                      {order.modalidad === 'local' ? 'En Local' : order.modalidad === 'domicilio' ? 'A Domicilio' : 'Para Llevar'}
+                    </p>
+                    {/* Nivel 2 + 3: Mesa con punto ámbar y descripción */}
+                    {order.modalidad === 'local' && order.nombreMesa && (
+                      <div className="modal-mesa-block">
+                        <div className="modal-mesa-row">
+                          <span className="modal-mesa-dot"></span>
+                          <span className="modal-mesa-nombre">{order.nombreMesa}</span>
+                        </div>
+                        {order.descripcionMesa && (
+                          <p className="modal-mesa-desc">{order.descripcionMesa}</p>
+                        )}
+                      </div>
+                    )}
                     {order.direccionEnvio && <p className="info-subvalue">{order.direccionEnvio}</p>}
                     {order.referenciaUbicacion && <p className="info-subvalue">{order.referenciaUbicacion}</p>}
                   </div>

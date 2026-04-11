@@ -202,6 +202,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0; /* Necesario para que flex children puedan scroll */
 }
 
 .dashboard-header {
@@ -272,15 +273,19 @@ body {
 .kanban-board {
   flex: 1;
   display: flex;
+  align-items: flex-start; /* Columnas toman su propia altura, no se estiran */
   gap: 1.25rem;
   padding: 1.5rem 2rem 2rem;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto; /* Permite scroll vertical del board si las columnas son muy altas */
+  min-height: 0;
 }
 
 /* ── KANBAN COLUMN ── */
 .kanban-col {
-  width: 21rem;
+  width: 22rem;
+  min-height: 200px;
+  max-height: calc(100vh - 180px); /* Altura máxima: que no salga de la pantalla */
   border-radius: 18px;
   display: flex;
   flex-direction: column;
@@ -289,7 +294,7 @@ body {
   border: 1px solid rgba(0,0,0,0.05);
   box-shadow: 0 2px 16px rgba(74,44,42,0.06);
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* La col misma contiene el borde redondeado */
   transition: box-shadow 0.2s;
 }
 
@@ -360,8 +365,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  overflow-y: auto;
+  overflow-y: auto; /* El scroll ocurre DENTRO de la columna */
+  overflow-x: hidden;
   padding: 1rem 1rem 1.2rem 1.2rem;
+  min-height: 0; /* Crítico para que flex+overflow funcionen */
 }
 
 .kanban-col-content::-webkit-scrollbar { width: 3px; }
@@ -376,11 +383,32 @@ body {
   border-radius: 14px;
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 2px 10px rgba(74,44,42,0.07);
-  overflow: hidden;
+  overflow: visible; /* No cortar contenido de la tarjeta */
+  flex-shrink: 0; /* La tarjeta nunca se apachurra */
   animation: cardIn 0.38s cubic-bezier(.32,.68,0,1.1) both;
   opacity: 0;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: default;
+}
+
+/* Thin colour stripe on card top per column */
+.kanban-col.finalizado .order-card { border-top: 3px solid #8b5cf6; }
+
+/* Entrante specific */
+.kanban-col.entrante .order-card {
+  border-top: 3px solid #ef4444;
+}
+
+/* Cocina specific layout border */
+.kanban-col.cocina .order-card {
+  border-left: 6px solid #f59e0b;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Listo specific border — usa inset box-shadow para respetar el border-radius */
+.kanban-col.listo .order-card {
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: inset 6px 0 0 0 #10b981, 0 2px 10px rgba(74,44,42,0.07);
 }
 
 .order-card:hover {
@@ -393,11 +421,7 @@ body {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Thin colour stripe on card top per column */
-.kanban-col.entrante   .order-card { border-top: 3px solid #ef4444; }
-.kanban-col.cocina     .order-card { border-top: 3px solid #f59e0b; }
-.kanban-col.listo      .order-card { border-top: 3px solid #10b981; }
-.kanban-col.finalizado .order-card { border-top: 3px solid #8b5cf6; }
+/* Removes previous top border color logic since we unified via left-border */
 
 /* ── Card Header ─────────────────── */
 .order-header {
@@ -448,6 +472,13 @@ body {
   margin-bottom: 0.6rem;
 }
 
+.orden-tipo-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.1rem;
+}
+
 .tag-modalidad, .tag-mesa, .tag-tiempo {
   font-size: 0.68rem;
   font-weight: 700;
@@ -470,17 +501,84 @@ body {
   border: 1px solid #EFE8DF;
 }
 
+.mesa-block-beige {
+  background: #F3EFEA;
+  color: #331e1c;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.35;
+}
+
+.mesa-block-detallado {
+  background: #fdfaf6; /* Beige ultra claro para mayor contraste */
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+  border: 1px solid #f0e9df;
+  box-shadow: 0 2px 6px rgba(139, 69, 19, 0.03);
+}
+
+.mesa-info-row {
+  display: flex;
+  align-items: center;
+}
+
+.mesa-row-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #b5a49c;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: 100px; /* Ancho suficiente para DESCRIPCIÓN sin pegar las palabras */
+  flex-shrink: 0;
+}
+
+.mesa-row-value-bold {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #4a2c2a;
+}
+
+.mesa-row-value-sub {
+  font-size: 0.85rem;
+  color: #8c7368;
+  font-style: italic;
+}
+
 .tag-tiempo {
   background: #FFF8E7;
   color: #B25A24;
   border: 1px solid #F8D6B3;
 }
 
+.orden-info-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.7rem;
+}
+
 /* ── Total price ─────────────────── */
-.order-total {
+.order-total-normal {
   font-size: 1.35rem;
   font-weight: 800;
   color: #8B4513;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.order-total-cocina {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #f59e0b; /* naranja grande */
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -498,7 +596,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: linear-gradient(135deg, #8B4513, #D2691E);
+  background: #D97706; /* naranja oscuro a todo lo ancho */
   color: #fff;
   font-weight: 700;
   font-size: 0.85rem;
@@ -506,13 +604,16 @@ body {
   border-radius: 10px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(139,69,19,0.35);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
   transition: all 0.2s;
   font-family: inherit;
   letter-spacing: 0.01em;
 }
+.btn-atender.default-full-width {
+  width: 100%; /* Forza ocupar completo */
+}
 .btn-atender:hover {
-  box-shadow: 0 6px 18px rgba(139,69,19,0.45);
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.35);
   transform: translateY(-1px);
 }
 
@@ -528,6 +629,15 @@ body {
   cursor: pointer;
   transition: all 0.18s;
   font-family: inherit;
+}
+.btn-detalle:hover { background: #ede9e1; color: #4A2C2A; border-color: #c8bdb0; }
+
+.btn-detalle-cocina {
+  background: #ffffff;
+  border: 1px solid #ccc;
+}
+.btn-detalle-cocina:hover {
+  background: #f1f1f1;
 }
 .btn-detalle:hover { background: #ede9e1; color: #4A2C2A; border-color: #c8bdb0; }
 
@@ -550,6 +660,132 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 5px 14px rgba(210,105,30,0.4);
 }
+
+.btn-siguiente-cocina {
+  background: #D97706; /* naranja oscuro */
+  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.2);
+}
+.btn-siguiente-cocina:hover {
+  box-shadow: 0 5px 14px rgba(217, 119, 6, 0.4);
+}
+
+/* ── Listo — Marcar Entregado button ── */
+.btn-entregar-listo {
+  flex: 2; /* Ocupa más ancho que el de Ver Detalle */
+  background: #16a34a; /* Verde oscuro */
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.65rem 0.5rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.25);
+  transition: all 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+.btn-entregar-listo:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(22, 163, 74, 0.4);
+}
+
+/* ══════════════════════════════════════
+   ENTREGADOS — Filas Compactas
+═══════════════════════════════════════ */
+.entregado-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #ffffff;
+  border: 1px solid #ede8e0;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  animation: cardIn 0.3s ease both;
+  flex-shrink: 0;
+  transition: box-shadow 0.2s;
+}
+.entregado-row:hover {
+  box-shadow: 0 4px 12px rgba(74,44,42,0.08);
+}
+
+/* Píldora morada del número */
+.entregado-pill {
+  flex-shrink: 0;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Info central — nombre + mesa */
+.entregado-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0; /* permite text-overflow */
+}
+.entregado-nombre {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #331e1c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entregado-mesa {
+  font-size: 0.72rem;
+  color: #9d8376;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Meta derecha — precio + tiempo */
+.entregado-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+.entregado-precio {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #6d28d9; /* morado */
+}
+.entregado-time {
+  font-size: 0.68rem;
+  color: #b0a097;
+}
+
+/* Botón Ver */
+.btn-ver-entregado {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid #d1c7be;
+  color: #7a6055;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+.btn-ver-entregado:hover {
+  background: #f5f0eb;
+  border-color: #b5a89e;
+  color: #4a2c2a;
+}
+
 
 /* ── Column divider line ────────── */
 .order-card-divider {

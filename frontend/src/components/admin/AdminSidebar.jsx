@@ -79,8 +79,12 @@ const AdminSidebar = () => {
         <div className="user-profile">
           <User size={32} className="user-avatar" />
           <div className="user-info">
-            <span className="user-name">{user?.nombre || 'Admin'}</span>
-            <span className="status-badge-sidebar">En Línea</span>
+            <span className="user-name">
+              {user ? `${user.primerNombre || ''} ${user.primerApellido || ''}`.trim() : 'Cargando...'}
+            </span>
+            <span className="status-badge-sidebar">
+              {user?.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'En Línea'}
+            </span>
           </div>
         </div>
         <button

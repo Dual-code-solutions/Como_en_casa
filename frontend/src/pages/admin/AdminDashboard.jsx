@@ -28,7 +28,11 @@ const AdminDashboard = () => {
         // Build mesa dictionary
         const mDict = {};
         if (mesasRes.data?.data) {
-          mesasRes.data.data.forEach(m => mDict[m.id] = m.nombre_o_numero || m.nombreONumero);
+          mesasRes.data.data.forEach(m => {
+            const nombre = m.nombre_o_numero || m.nombreONumero || '';
+            const desc = m.descripcion ? m.descripcion : '';
+            mDict[m.id] = { nombre, desc };
+          });
         }
         setMesasDict(mDict);
 
@@ -52,10 +56,12 @@ const AdminDashboard = () => {
       
       const fullOrder = {
           id: newOrder.orderId,
+          numOrdenDia: newOrder.numOrdenDia || null,
           nombreCliente: newOrder.customer.name,
           estado: 'entrante',
           modalidad: newOrder.deliveryType,
           mesaId: newOrder.customer.table || '-',
+          total: newOrder.total || null,
           creadoAt: new Date().toISOString()
       };
 
@@ -129,6 +135,44 @@ const AdminDashboard = () => {
 
               <div className="kanban-col-content">
                 {orders.filter(o => o.estado === state.id).map((order, idx) => {
+                  // COLUMNA FINALIZADO — fila compacta
+                  if (state.id === 'finalizado') {
+                    const mesaInfo = order.mesaId && order.mesaId !== '-' ? (mesasDict[order.mesaId] || { nombre: `Mesa ${String(order.mesaId).slice(-4)}`, desc: '' }) : null;
+                    const timeAgo = order.creadoAt
+                      ? (() => {
+                          const diff = Math.floor((Date.now() - new Date(order.creadoAt)) / 60000);
+                          if (diff < 1) return 'Ahora';
+                          if (diff < 60) return `${diff}m`;
+                          return `${Math.floor(diff/60)}h`;
+                        })()
+                      : '';
+                    return (
+                      <div key={order.id} className="entregado-row" style={{ animationDelay: `${idx * 0.05}s` }}>
+                        {/* #Número */}
+                        <div className="entregado-pill">
+                          #{order.numOrdenDia ? String(order.numOrdenDia).padStart(3, '0') : String(order.id).slice(-4)}
+                        </div>
+                        {/* Info central */}
+                        <div className="entregado-info">
+                          <span className="entregado-nombre">{order.nombreCliente}</span>
+                          {mesaInfo && (
+                            <span className="entregado-mesa">
+                              {mesaInfo.nombre}{mesaInfo.desc ? ` · ${mesaInfo.desc}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        {/* Precio + tiempo */}
+                        <div className="entregado-meta">
+                          {order.total && <span className="entregado-precio">${Number(order.total).toFixed(2)}</span>}
+                          {timeAgo && <span className="entregado-time">{timeAgo}</span>}
+                        </div>
+                        {/* Botón Ver */}
+                        <button className="btn-ver-entregado" onClick={() => handleViewDetails(order.id)}>Ver</button>
+                      </div>
+                    );
+                  }
+
+                  // RESTO DE COLUMNAS — tarjeta normal
                   const modalidadMap = { local: 'En Local', domicilio: 'Domicilio', pasar_a_recoger: 'Para Llevar' };
                   const modalidadLabel = modalidadMap[order.modalidad] || order.modalidad;
                   const timeAgo = order.creadoAt
@@ -140,6 +184,12 @@ const AdminDashboard = () => {
                         return `Hace ${Math.floor(diff/60)}h`;
                       })()
                     : '';
+
+                  const isCocina = state.id === 'cocina';
+                  const isEntrante = state.id === 'entrante';
+                  const isListo = state.id === 'listo';
+                  const isNormal = !isCocina && !isEntrante && !isListo;
+                  const mesaInfo = order.mesaId && order.mesaId !== '-' ? (mesasDict[order.mesaId] || { nombre: `Mesa ${String(order.mesaId).slice(-4)}`, desc: '' }) : null;
 
                   return (
                   <div key={order.id} className="order-card" style={{ animationDelay: `${idx * 0.05}s` }}>
@@ -154,36 +204,143 @@ const AdminDashboard = () => {
                     {/* Body */}
                     <div className="order-body">
                       <p className="order-customer">{order.nombreCliente}</p>
-                      <div className="order-tags">
-                        <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
-                        {order.mesaId && order.mesaId !== '-' && (
-                          <span className="tag-mesa" style={{ textTransform: 'capitalize' }}>
-                            {mesasDict[order.mesaId] || `Mesa ${String(order.mesaId).slice(-4)}`}
-                          </span>
-                        )}
-                        {order.tiempoEsperaMinutos && (
-                          <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>
-                        )}
-                      </div>
-                      {order.total && (
-                        <div className="order-total">${Number(order.total).toFixed(2)}</div>
+                      
+                      {isNormal && (
+                        <>
+                          <div className="order-tags">
+                            <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
+                            {mesaInfo && (
+                              <span className="tag-mesa" style={{ textTransform: 'capitalize' }}>
+                                {mesaInfo.nombre} {mesaInfo.desc ? `- ${mesaInfo.desc}` : ''}
+                              </span>
+                            )}
+                            {order.tiempoEsperaMinutos && (
+                              <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>
+                            )}
+                          </div>
+                          {order.total && (
+                            <div className="order-total-normal">${Number(order.total).toFixed(2)}</div>
+                          )}
+                        </>
+                      )}
+
+                      {isCocina && (
+                        <>
+                          <div className="orden-tipo-wrapper">
+                            <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
+                          </div>
+                          
+                          {mesaInfo && (
+                            <div className="mesa-block-detallado">
+                              <div className="mesa-info-row">
+                                <span className="mesa-row-label">MESA</span>
+                                <span className="mesa-row-value-bold">{mesaInfo.nombre}</span>
+                              </div>
+                              {mesaInfo.desc && (
+                                <div className="mesa-info-row">
+                                  <span className="mesa-row-label">DESCRIPCIÓN</span>
+                                  <span className="mesa-row-value-sub">{mesaInfo.desc}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="orden-info-bottom">
+                            {order.tiempoEsperaMinutos ? (
+                              <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>
+                            ) : <div></div>}
+                            
+                            {order.total && (
+                              <div className="order-total-cocina">${Number(order.total).toFixed(2)}</div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {isEntrante && (
+                        <>
+                          <div className="orden-tipo-wrapper">
+                            <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
+                          </div>
+                          
+                          {mesaInfo && (
+                            <div className="mesa-block-detallado">
+                              <div className="mesa-info-row">
+                                <span className="mesa-row-label">MESA</span>
+                                <span className="mesa-row-value-bold">{mesaInfo.nombre}</span>
+                              </div>
+                              {mesaInfo.desc && (
+                                <div className="mesa-info-row">
+                                  <span className="mesa-row-label">DESCRIPCIÓN</span>
+                                  <span className="mesa-row-value-sub">{mesaInfo.desc}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="orden-info-bottom">
+                            <div className="filler-div"></div>
+                            {order.total && (
+                              <div className="order-total-cocina">${Number(order.total).toFixed(2)}</div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      {isListo && (
+                        <>
+                          {/* Badges: tipo + tiempo en misma fila */}
+                          <div className="order-tags">
+                            <span className={`tag-modalidad tag-${order.modalidad}`}>{modalidadLabel}</span>
+                            {order.tiempoEsperaMinutos && (
+                              <span className="tag-tiempo">⏱ {order.tiempoEsperaMinutos} min</span>
+                            )}
+                          </div>
+
+                          {/* Bloque mesa detallado */}
+                          {mesaInfo && (
+                            <div className="mesa-block-detallado">
+                              <div className="mesa-info-row">
+                                <span className="mesa-row-label">MESA</span>
+                                <span className="mesa-row-value-bold">{mesaInfo.nombre}</span>
+                              </div>
+                              {mesaInfo.desc && (
+                                <div className="mesa-info-row">
+                                  <span className="mesa-row-label">DESCRIPCIÓN</span>
+                                  <span className="mesa-row-value-sub">{mesaInfo.desc}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Precio grande naranja */}
+                          {order.total && (
+                            <div className="order-total-cocina">${Number(order.total).toFixed(2)}</div>
+                          )}
+                        </>
                       )}
                     </div>
 
                     {/* Footer / Actions */}
                     <div className="order-actions">
                       {state.id === 'entrante' ? (
-                        <button className="btn-siguiente btn-atender" onClick={() => handleViewDetails(order.id)}>
-                          <Eye size={15} /> Atender Pedido
+                        <button className="btn-siguiente btn-atender default-full-width" onClick={() => handleViewDetails(order.id)}>
+                          Atender Pedido
                         </button>
                       ) : state.id === 'finalizado' ? (
                         <button className="btn-detalle" style={{ flex: 1 }} onClick={() => handleViewDetails(order.id)}>
                           Historial Detalles
                         </button>
+                      ) : isListo ? (
+                        <>
+                          <button className="btn-detalle btn-detalle-cocina" onClick={() => handleViewDetails(order.id)}>Ver Detalle</button>
+                          <button className="btn-entregar-listo" onClick={() => advanceOrder(order)}>
+                            ✓ Marcar Entregado
+                          </button>
+                        </>
                       ) : (
                         <>
-                          <button className="btn-detalle" onClick={() => handleViewDetails(order.id)}>Ver Detalle</button>
-                          <button className="btn-siguiente" onClick={() => advanceOrder(order)}>
+                          <button className={`btn-detalle ${isCocina ? 'btn-detalle-cocina' : ''}`} onClick={() => handleViewDetails(order.id)}>Ver Detalle</button>
+                          <button className={`btn-siguiente ${isCocina ? 'btn-siguiente-cocina' : ''}`} onClick={() => advanceOrder(order)}>
                             {state.id === 'cocina' ? '✓ Listo' : '📦 Entregar'}
                           </button>
                         </>

@@ -151,6 +151,50 @@
 .info-value   { margin: 0 0 2px 0; font-weight: 600; color: #2c1a17; font-size: 0.92rem; }
 .info-subvalue{ margin: 0; font-size: 0.82rem; color: #777; }
 
+/* ── Modalidad — bloque de 3 niveles ─────────────────── */
+.modal-tipo-orden {
+  font-weight: 700;
+  color: #2c1a17;
+  font-size: 0.95rem;
+  margin: 0 0 6px 0;
+}
+
+.modal-mesa-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modal-mesa-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Punto ámbar indicador */
+.modal-mesa-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+}
+
+.modal-mesa-nombre {
+  font-weight: 700;
+  color: #2c1a17;
+  font-size: 0.9rem;
+}
+
+/* Descripción en italic gris con sangría */
+.modal-mesa-desc {
+  margin: 0 0 0 15px; /* sangría alineada bajo el nombre */
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #9d8376;
+}
+
 /* ── Products ────────────────────────────────────────── */
 .order-items-container { margin-bottom: 20px; }
 

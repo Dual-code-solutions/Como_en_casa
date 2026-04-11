@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import apiClient from '../../api/apiClient';
-import { Plus, Edit2, Trash2, Users, MapPin, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, MapPin, Search, Armchair } from 'lucide-react';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import { showAlert, showConfirm } from '../../utils/swalCustom';
 import Swal from 'sweetalert2';
@@ -228,16 +228,17 @@ const AdminMesas = () => {
                 return (
                   <div key={mesa.id} className={`mesa-card estado-${estado}`}>
                     <div className="mesa-header">
-                      <div className="mesa-title-wrapper">
-                        <MapPin className="mesa-icon" size={20} />
-                        <div className="mesa-info">
-                          <h3>{nombreItem}</h3>
-                          {mesa.descripcion && <span className="mesa-desc">{mesa.descripcion}</span>}
-                        </div>
+                      <div className="mesa-icon-pink">
+                        <Armchair size={20} />
                       </div>
                       <span className={`mesa-state-pill ${estado}`}>
                         {isOcupada ? 'Ocupada' : 'Disponible'}
                       </span>
+                    </div>
+
+                    <div className="mesa-title-section">
+                      <h3>{nombreItem}</h3>
+                      {mesa.descripcion && <span className="mesa-desc-pill">{mesa.descripcion}</span>}
                     </div>
 
                     <div className="mesa-body">

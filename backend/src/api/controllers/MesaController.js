@@ -32,6 +32,7 @@ class MesaController {
       const mesa = await this._createMesa.execute({
         localId:       req.params.localId,
         nombreONumero: req.body.nombre_o_numero,
+        descripcion:   req.body.descripcion,
         capacidad:     req.body.capacidad
       });
       res.status(201).json({ success: true, data: mesa });
@@ -45,6 +46,7 @@ class MesaController {
         mesaId: req.params.id,
         data: {
           nombreONumero: req.body.nombre_o_numero,
+          descripcion:   req.body.descripcion,
           capacidad:     req.body.capacidad
         }
       });
