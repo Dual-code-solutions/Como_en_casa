@@ -31,3 +31,6 @@ Thumbs.db
 
 # Temp files
 git_push_error.txt
+*.txt
+*.sql
+fotos/
