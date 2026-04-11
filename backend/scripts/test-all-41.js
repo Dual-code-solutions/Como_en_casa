@@ -26,7 +26,7 @@ async function run() {
   console.log('═══════════════════════════════════════════\n');
 
   // ── LOGIN ──
-  const loginRes = await req('POST', '/auth/login', { email: 'serviciodualcodesolutions.devs@gmail.com', password: 'ServiciosDualcode' }, false);
+  const loginRes = await req('POST', '/auth/login', { email: 'admin@tudominio.com', password: 'Password123' }, false);
   const loginData = await loginRes.json();
   TOKEN = loginData.data?.token;
   log(1, 'POST', '/auth/login', loginRes.status, loginRes.status === 200);

@@ -51,14 +51,14 @@ const LoginAdmin = () => {
 
                 <form onSubmit={handleLogin} className="login-form">
                     <div className="login-input-group">
-                        <label className="login-label">Usuario</label>
+                        <label className="login-label">Correo electrónico</label>
                         <div className="login-input-wrapper">
                             <User className="login-input-icon" size={18} />
                             <input 
                                 required
-                                type="text" 
+                                type="email" 
                                 className="login-input"
-                                placeholder="Nombre de usuario"
+                                placeholder="ejemplo@correo.com"
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>

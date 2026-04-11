@@ -25,6 +25,11 @@ const Menu = () => {
     }
   };
 
+  const handleCategoryChange = (catId) => {
+    setActiveCategory(catId);
+    sessionStorage.setItem('activeCategory_client', catId);
+  };
+
   useEffect(() => {
     const fetchMenu = async () => {
       try {
@@ -32,8 +37,15 @@ const Menu = () => {
         const prodRes = await apiClient.get(`/locales/${LOCAL_ID}/productos?visible=true`);
         
         if (catRes.data && catRes.data.data) {
-          setCategories(catRes.data.data);
-          setActiveCategory(catRes.data.data[0]?.id || null);
+          const fetchedCats = catRes.data.data;
+          setCategories(fetchedCats);
+          
+          const savedCatId = sessionStorage.getItem('activeCategory_client');
+          if (savedCatId && fetchedCats.some(c => c.id === savedCatId)) {
+            setActiveCategory(savedCatId);
+          } else {
+            setActiveCategory(fetchedCats[0]?.id || null);
+          }
         }
         if (prodRes.data && prodRes.data.data) {
           setProducts(prodRes.data.data);
@@ -71,7 +83,7 @@ const Menu = () => {
               <button
                 key={cat.id}
                 className={`category-tab ${activeCategory === cat.id ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
               >
                 {cat.nombre}
               </button>

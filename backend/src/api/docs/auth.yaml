@@ -16,11 +16,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: serviciodualcodesolutions.devs@gmail.com
+                  example: admin@tudominio.com
                 password:
                   type: string
                   minLength: 6
-                  example: ServiciosDualcode
+                  example: MiContrasenaSegura
       responses:
         200:
           description: Login exitoso

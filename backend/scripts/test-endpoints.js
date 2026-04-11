@@ -14,8 +14,8 @@ async function test() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: 'serviciodualcodesolutions.devs@gmail.com',
-      password: 'ServiciosDualcode'
+      email: 'admin@tudominio.com',
+      password: 'Password123'
     })
   });
   const loginData = await loginRes.json();
